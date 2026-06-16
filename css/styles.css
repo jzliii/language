@@ -203,8 +203,9 @@ body {
 .hero-streak .hs-ic { font-size: 1.3rem; }
 .hero-streak small { opacity: .85; display: block; font-size: .72rem; }
 .hero-streak strong { font-size: 1.4rem; }
-.hero-cat { position: absolute; right: 10px; bottom: -6px; width: 150px; opacity: .9; pointer-events: none; }
-.hero-cat svg { width: 100%; height: auto; }
+.hero-cat { position: absolute; right: 12px; bottom: 14px; width: 132px; opacity: .92; pointer-events: none; }
+.hero-cat .cat-art { width: 100%; height: auto; display: block; }
+@media (max-width: 380px) { .hero-cat { width: 104px; opacity: .85; } }
 
 /* ---- Dashboard 卡片 ---- */
 .dash-card {

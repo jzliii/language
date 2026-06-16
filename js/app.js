@@ -158,16 +158,11 @@ function greetName() {
   return n ? `，${n}` : '';
 }
 
-const CAT_SVG = `<svg viewBox="0 0 120 120" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M38 40 L30 22 L46 34 M82 40 L90 22 L74 34"/>
-  <path d="M30 58 a30 26 0 0 1 60 0 v6 a30 30 0 0 1 -60 0 z"/>
-  <rect x="40" y="50" width="16" height="11" rx="5"/><rect x="64" y="50" width="16" height="11" rx="5"/><path d="M56 55 h8"/>
-  <path d="M60 66 l-4 4 l4 3 l4 -3 z"/>
-  <path d="M40 74 q8 6 16 0 M64 74 q8 6 16 0"/>
-  <path d="M34 86 a26 26 0 0 0 52 0"/>
-  <path d="M86 96 q14 -2 12 -20" />
-  <rect x="92" y="74" width="14" height="20" rx="3"/><path d="M99 74 v-8 M99 66 q6 -2 6 -8"/>
-</svg>`;
+const CAT_COUNT = 20;
+function catImg() {
+  const n = String(Math.floor(Math.random() * CAT_COUNT) + 1).padStart(2, '0');
+  return `<img src="assets/cats/cat${n}.png" alt="" class="cat-art" loading="eager">`;
+}
 
 // ---------- 首頁 Dashboard ----------
 function renderDashboard() {
@@ -226,7 +221,7 @@ function renderDashboard() {
         <span class="hs-ic">🔥</span>
         <span><small>連續學習</small><strong>${streak}</strong> 天</span>
       </div>
-      <div class="hero-cat">${CAT_SVG}</div>
+      <div class="hero-cat">${catImg()}</div>
     </section>
 
     <section class="dash-card">
