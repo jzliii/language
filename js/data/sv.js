@@ -1,0 +1,46 @@
+// 瑞典語 入門：發音、咖啡與基礎
+export default {
+  vocab: [
+    { id: 'sv-v1', front: 'Hej', reading: 'hey', back: '嗨／你好', example: 'Hej! Hur mår du? (嗨！你好嗎？)' },
+    { id: 'sv-v2', front: 'Hej då', reading: 'hey doh', back: '再見', example: 'Tack, hej då! (謝謝，再見！)' },
+    { id: 'sv-v3', front: 'Tack', reading: 'tack', back: '謝謝', example: 'Tack så mycket! (非常感謝)' },
+    { id: 'sv-v4', front: 'Varsågod', reading: 'VAR-sho-good', back: '不客氣／請用', example: 'Varsågod, här är kaffet. (請用，這是咖啡)' },
+    { id: 'sv-v5', front: 'Ja / Nej', reading: 'yah / ney', back: '是／不是', example: 'Ja, tack. (好的，謝謝)' },
+    { id: 'sv-v6', front: 'Kaffe', reading: 'KAF-feh', back: '咖啡', example: 'En kopp kaffe, tack. (一杯咖啡，謝謝)' },
+    { id: 'sv-v7', front: 'En kopp', reading: 'en kopp', back: '一杯', example: 'En kopp te, tack. (一杯茶，謝謝)' },
+    { id: 'sv-v8', front: 'Te', reading: 'teh', back: '茶', example: 'Jag vill ha te. (我想要茶)' },
+    { id: 'sv-v9', front: 'Vatten', reading: 'VAT-ten', back: '水', example: 'Ett glas vatten, tack. (一杯水，謝謝)' },
+    { id: 'sv-v10', front: 'En bulle', reading: 'en BUL-leh', back: '一個甜麵包', example: 'En kanelbulle, tack. (一個肉桂捲，謝謝)' },
+    { id: 'sv-v11', front: 'Jag vill ha…', reading: 'yah vil ha', back: '我想要…', example: 'Jag vill ha en kaffe. (我想要一杯咖啡)' },
+    { id: 'sv-v12', front: 'Hur mycket kostar det?', reading: 'hur MYK-ket KOS-tar de', back: '多少錢？', example: 'Hur mycket kostar kaffet? (咖啡多少錢？)' },
+    { id: 'sv-v13', front: 'Tjugo', reading: 'CHU-go', back: '二十', example: 'Det kostar tjugo kronor. (二十克朗)' },
+    { id: 'sv-v14', front: 'Kronor', reading: 'KRO-nor', back: '克朗 (貨幣)', example: 'Fem kronor. (五克朗)' },
+    { id: 'sv-v15', front: 'Ursäkta', reading: 'ur-SHEK-ta', back: '不好意思', example: 'Ursäkta, var är toaletten? (不好意思，廁所在哪？)' },
+    { id: 'sv-v16', front: 'God morgon', reading: 'good MOR-ron', back: '早安', example: 'God morgon! (早安！)' },
+    { id: 'sv-v17', front: 'Hur mår du?', reading: 'hur moor du', back: '你好嗎？', example: 'Hej, hur mår du? (嗨，你好嗎？)' },
+    { id: 'sv-v18', front: 'Bra', reading: 'braa', back: '好、不錯', example: 'Jag mår bra, tack. (我很好，謝謝)' },
+    { id: 'sv-v19', front: 'Snälla', reading: 'SNEL-la', back: '拜託、請', example: 'En kaffe, snälla. (請給我一杯咖啡)' },
+    { id: 'sv-v20', front: 'Fika', reading: 'FEE-ka', back: '喝咖啡吃點心的時光', example: 'Ska vi fika? (要不要來個 fika？)' },
+  ],
+  grammar: [
+    { id: 'sv-g1', type: 'mc', prompt: '「我想要一杯咖啡」：Jag vill ___ en kaffe.', options: ['ha', 'är', 'har', 'vara'], answer: 0, explanation: '「vill ha」＝想要。vill 後接原形動詞 ha（有／要）。' },
+    { id: 'sv-g2', type: 'mc', prompt: '「一杯咖啡」：___ kopp kaffe', options: ['en', 'ett', 'den', 'det'], answer: 0, explanation: 'kopp 是 en-字（共性名詞），用不定冠詞 en。' },
+    { id: 'sv-g3', type: 'mc', prompt: '「一杯水」：___ glas vatten', options: ['ett', 'en', 'det', 'den'], answer: 0, explanation: 'glas 是 ett-字（中性名詞），用 ett。瑞典語名詞分 en/ett 兩類。' },
+    { id: 'sv-g4', type: 'mc', prompt: '回答 "Tack"（謝謝）最自然的是：', options: ['Varsågod', 'Hej då', 'Ursäkta', 'Ja'], answer: 0, explanation: 'Varsågod＝不客氣／請用。' },
+    { id: 'sv-g5', type: 'mc', prompt: '「多少錢？」Hur mycket ___ det?', options: ['kostar', 'är', 'har', 'vill'], answer: 0, explanation: 'kosta＝花費。Hur mycket kostar det?＝這多少錢？' },
+    { id: 'sv-g6', type: 'mc', prompt: '「你好嗎？」Hur ___ du?', options: ['mår', 'är', 'har', 'vill'], answer: 0, explanation: 'må＝（身體、心情）狀態。Hur mår du?＝你好嗎？' },
+    { id: 'sv-g7', type: 'mc', prompt: '瑞典語的問句通常把動詞放在：', options: ['句首（動詞倒裝）', '句尾', '主詞後不變', '省略動詞'], answer: 0, explanation: '是非疑問句採 V1 倒裝：動詞放句首，如 Vill du ha kaffe?' },
+  ],
+  reading: [
+    {
+      id: 'sv-r1', title: 'På caféet', level: '入門',
+      text: '— Hej! Vad vill du ha?\n— Hej! En kopp kaffe och en kanelbulle, tack.\n— Visst. Något mer?\n— Nej tack, det är bra.\n— Det blir trettiofem kronor.\n— Varsågod.\n— Tack så mycket. Hej då!',
+      translation: '—嗨！你想要什麼？\n—嗨！一杯咖啡和一個肉桂捲，謝謝。\n—好的。還要別的嗎？\n—不用了，謝謝，這樣就好。\n—一共三十五克朗。\n—（給錢）請收下。\n—非常感謝。再見！',
+      questions: [
+        { q: '客人點了什麼？', options: ['咖啡和肉桂捲', '茶和水', '只有咖啡', '披薩'], answer: 0 },
+        { q: '一共多少克朗？', options: ['二十', '三十五', '五十', '十五'], answer: 1 },
+        { q: '「Nej tack, det är bra」是什麼意思？', options: ['好的還要', '不用了，這樣就好', '再來一杯', '多少錢'], answer: 1 },
+      ],
+    },
+  ],
+};

@@ -1,0 +1,47 @@
+// 義大利語 入門：打招呼與點餐
+export default {
+  vocab: [
+    { id: 'it-v1', front: 'Ciao', reading: 'tʃao', back: '嗨／再見 (非正式)', example: 'Ciao, come stai? (嗨，你好嗎？)' },
+    { id: 'it-v2', front: 'Buongiorno', reading: 'bwon-DJOR-no', back: '早安／日安', example: 'Buongiorno, signora. (女士早安)' },
+    { id: 'it-v3', front: 'Buonasera', reading: 'bwona-SE-ra', back: '晚安 (傍晚問候)', example: 'Buonasera a tutti. (大家晚安)' },
+    { id: 'it-v4', front: 'Grazie', reading: 'GRAT-tsye', back: '謝謝', example: 'Grazie mille! (非常感謝)' },
+    { id: 'it-v5', front: 'Prego', reading: 'PRE-go', back: '不客氣／請', example: 'Prego, si accomodi. (請坐)' },
+    { id: 'it-v6', front: 'Per favore', reading: 'per fa-VO-re', back: '請 (拜託)', example: 'Un caffè, per favore. (請給我一杯咖啡)' },
+    { id: 'it-v7', front: 'Scusi', reading: 'SKU-zi', back: '不好意思 (正式)', example: 'Scusi, dov’è il bagno? (請問廁所在哪？)' },
+    { id: 'it-v8', front: 'Sì / No', reading: 'si / no', back: '是／不是', example: 'Sì, grazie. (好的，謝謝)' },
+    { id: 'it-v9', front: 'Il conto', reading: 'il KON-to', back: '帳單', example: 'Il conto, per favore. (請給我帳單)' },
+    { id: 'it-v10', front: 'Un caffè', reading: 'un kaf-FE', back: '一杯咖啡 (濃縮)', example: 'Vorrei un caffè. (我想要一杯咖啡)' },
+    { id: 'it-v11', front: 'Un cappuccino', reading: 'kap-pu-TCHI-no', back: '一杯卡布奇諾', example: 'Un cappuccino, grazie. (一杯卡布奇諾，謝謝)' },
+    { id: 'it-v12', front: "L'acqua", reading: 'LAK-kwa', back: '水', example: "Dell'acqua naturale, per favore. (請給我無氣泡的水)" },
+    { id: 'it-v13', front: 'Il menu', reading: 'il me-NU', back: '菜單', example: 'Il menu, per favore. (請給我菜單)' },
+    { id: 'it-v14', front: 'Vorrei', reading: 'vor-RE-i', back: '我想要 (禮貌)', example: 'Vorrei una pizza. (我想要一份披薩)' },
+    { id: 'it-v15', front: 'La pizza', reading: 'la PIT-tsa', back: '披薩', example: 'Una pizza margherita. (一份瑪格麗特披薩)' },
+    { id: 'it-v16', front: 'Il vino', reading: 'il VI-no', back: '葡萄酒', example: 'Un bicchiere di vino rosso. (一杯紅酒)' },
+    { id: 'it-v17', front: 'Quanto costa?', reading: 'KWAN-to KO-sta', back: '多少錢？', example: 'Quanto costa il caffè? (咖啡多少錢？)' },
+    { id: 'it-v18', front: 'Buono', reading: 'BWO-no', back: '好吃的、好的', example: 'È molto buono! (非常好吃！)' },
+    { id: 'it-v19', front: 'Arrivederci', reading: 'ar-ri-ve-DER-tchi', back: '再見 (正式)', example: 'Arrivederci e grazie. (再見，謝謝)' },
+    { id: 'it-v20', front: 'Mi chiamo…', reading: 'mi KYA-mo', back: '我叫…', example: 'Mi chiamo Eva. (我叫 Eva)' },
+  ],
+  grammar: [
+    { id: 'it-g1', type: 'mc', prompt: '___ un caffè, per favore. (我想要一杯咖啡)', options: ['Vorrei', 'Voglio', 'Avere', 'Sono'], answer: 0, explanation: '「Vorrei」是 volere 的條件式，點餐時比 voglio 更有禮貌。' },
+    { id: 'it-g2', type: 'mc', prompt: '選出「一杯咖啡」正確的冠詞：___ caffè', options: ['un', 'una', 'uno', 'la'], answer: 0, explanation: 'caffè 是陽性名詞，用不定冠詞 un。' },
+    { id: 'it-g3', type: 'mc', prompt: '選出「一份披薩」正確的冠詞：___ pizza', options: ['una', 'un', 'uno', 'il'], answer: 0, explanation: 'pizza 是陰性名詞，用 una。' },
+    { id: 'it-g4', type: 'mc', prompt: 'Come ___? (你好嗎？)', options: ['stai', 'sei', 'hai', 'fai'], answer: 0, explanation: '問候用 stare：Come stai?（非正式）。' },
+    { id: 'it-g5', type: 'mc', prompt: '回答 "Grazie" 最自然的是：', options: ['Prego', 'Scusi', 'Ciao', 'Sì'], answer: 0, explanation: 'Prego＝不客氣，是對 Grazie 的標準回應。' },
+    { id: 'it-g6', type: 'mc', prompt: 'Il conto, ___ . (請給我帳單)', options: ['per favore', 'grazie', 'prego', 'scusi'], answer: 0, explanation: 'per favore＝拜託、請，用於提出請求。' },
+    { id: 'it-g7', type: 'mc', prompt: '「我叫 Marco」：Mi ___ Marco.', options: ['chiamo', 'chiami', 'chiama', 'nome'], answer: 0, explanation: 'chiamarsi 的第一人稱：mi chiamo＝我叫。' },
+    { id: 'it-g8', type: 'mc', prompt: '「這個多少錢？」', options: ['Quanto costa?', 'Come stai?', 'Dove sei?', "Che ora è?"], answer: 0, explanation: 'Quanto costa?＝（這個）多少錢？' },
+  ],
+  reading: [
+    {
+      id: 'it-r1', title: 'Al bar', level: '入門',
+      text: '— Buongiorno! Un caffè, per favore.\n— Subito. Qualcos’altro?\n— Sì, anche un cornetto.\n— Ecco a Lei. Sono tre euro.\n— Grazie mille.\n— Prego, buona giornata!',
+      translation: '—早安！請給我一杯咖啡。\n—馬上來。還要別的嗎？\n—好，再加一個可頌。\n—給您。一共三歐元。\n—非常感謝。\n—不客氣，祝您有美好的一天！',
+      questions: [
+        { q: '客人點了什麼？', options: ['咖啡和可頌', '披薩', '紅酒', '水'], answer: 0 },
+        { q: '一共多少錢？', options: ['兩歐元', '三歐元', '五歐元', '十歐元'], answer: 1 },
+        { q: '店員最後說了什麼？', options: ['再見', '不客氣，祝你有美好的一天', '謝謝', '早安'], answer: 1 },
+      ],
+    },
+  ],
+};
