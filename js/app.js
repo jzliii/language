@@ -661,11 +661,18 @@ function renderReading(lang, id) {
         answered++;
         if (answered === r.questions.length) {
           store.recordScore(lang.code, 'reading', correct, r.questions.length);
+          const all = lang.content.reading || [];
+          const idx = all.findIndex((x) => x.id === r.id);
+          const next = all[idx + 1];
           const res = document.getElementById('rresult');
           res.classList.remove('hidden');
           res.innerHTML = `完成！答對 <strong>${correct}</strong> / ${r.questions.length} 題 ${
             correct === r.questions.length ? '🏆' : '👍'
-          }`;
+          }
+          <div class="reading-next">
+            ${next ? `<a class="btn primary" href="#/lang/${lang.code}/reading/${next.id}">下一篇 →</a>` : ''}
+            <a class="btn" href="#/lang/${lang.code}/reading">回閱讀清單</a>
+          </div>`;
         }
       };
     });
