@@ -231,10 +231,19 @@ body {
 .daily-w { font-weight: 600; }
 .daily-r { color: var(--mut); font-size: .82rem; text-align: right; }
 
-/* ---- 名言 ---- */
-.quote-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 18px 18px 20px; margin-bottom: 16px; position: relative; }
-.quote-mark { color: var(--pri2); font-size: 2rem; font-weight: 800; line-height: .6; }
-.quote-text { font-size: 1.02rem; margin-top: 6px; }
+/* ---- 一週課表 ---- */
+.week-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 14px; }
+.wk-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 2px; border-radius: 12px; background: var(--card2); }
+.wk-cell .wk-d { font-size: .68rem; color: var(--mut); }
+.wk-cell .wk-l { font-size: 1rem; font-weight: 700; }
+.wk-cell.on { background: var(--pri); }
+.wk-cell.on .wk-d, .wk-cell.on .wk-l { color: #fff; }
+.today-focus { display: grid; gap: 10px; }
+.tf-main { display: flex; align-items: center; gap: 12px; }
+.tf-flag { font-size: 2rem; }
+.tf-text strong { font-size: 1.1rem; display: block; }
+.tf-text small { color: var(--mut); font-size: .82rem; }
+.btn.tf-more { font-size: .88rem; }
 
 .sec-title { font-size: 1.05rem; margin: 6px 2px 12px; }
 

@@ -131,17 +131,6 @@ function setActiveTab(hash) {
 
 createTabBar();
 
-// 名言（依日期輪替，不掛作者以免誤植）
-const QUOTES = [
-  '語言讓世界變大，也讓我們更自由。',
-  '會一種語言，就多活一次人生。',
-  '每天一點點，勝過偶爾的猛衝。',
-  '學語言沒有捷徑，但每一張卡都算數。',
-  '今天的複習，是明天脫口而出的底氣。',
-  '慢慢來，比較快。',
-  '開口的勇氣，比完美的文法更重要。',
-];
-
 function greeting() {
   const h = new Date().getHours();
   if (h < 5) return '夜深了';
@@ -189,7 +178,28 @@ function renderDashboard() {
     })
     .join('');
 
-  const quote = QUOTES[dayIndex() % QUOTES.length];
+  // 一週課表：週一～週六各排一種語言，週日（第七天）到複習區總複習
+  const dow = new Date().getDay(); // 0=日 .. 6=六
+  const plan = dow === 0 ? { type: 'review' } : { type: 'lang', lang: LANGUAGES[dow - 1] };
+  const WD = ['日', '一', '二', '三', '四', '五', '六'];
+  const weekStrip = [1, 2, 3, 4, 5, 6, 0]
+    .map((d) => {
+      const label = d === 0 ? '複' : LANGUAGES[d - 1].short;
+      return `<div class="wk-cell${d === dow ? ' on' : ''}"><span class="wk-d">${WD[d]}</span><span class="wk-l">${label}</span></div>`;
+    })
+    .join('');
+  let todayFocus;
+  if (plan.type === 'review') {
+    todayFocus = `
+      <div class="tf-main"><span class="tf-flag">🎉</span><div class="tf-text"><strong>今天是總複習日</strong><small>把這週學的單字一起複習一輪</small></div></div>
+      <a class="btn primary big" href="#/review">開始綜合複習</a>`;
+  } else {
+    const l = plan.lang;
+    todayFocus = `
+      <div class="tf-main"><span class="tf-flag">${l.flag}</span><div class="tf-text"><strong>今天學 ${l.name}</strong><small>${esc(l.level)} · 待複習 ${dueCount(l)}</small></div></div>
+      <a class="btn primary big" href="#/lang/${l.code}/flashcards">開始背單字</a>
+      <a class="btn tf-more" href="#/lang/${l.code}">看 ${l.name} 全部練習</a>`;
+  }
 
   const cards = LANGUAGES.map((l) => {
     const st = vocabStats(l);
@@ -224,6 +234,12 @@ function renderDashboard() {
       <div class="hero-cat">${catImg()}</div>
     </section>
 
+    <section class="dash-card today-card">
+      <div class="dash-h">📅 今日課表 <span class="dash-total">週${WD[dow]}</span></div>
+      <div class="week-strip">${weekStrip}</div>
+      <div class="today-focus">${todayFocus}</div>
+    </section>
+
     <section class="dash-card">
       <div class="dash-h">🧠 今日待複習 <span class="dash-total">共 ${totalDue} 項</span></div>
       <div class="due-grid">${dueGrid}</div>
@@ -233,11 +249,6 @@ function renderDashboard() {
     <section class="dash-card">
       <div class="dash-h">🌍 每日一字 · <span class="daily-zh">${esc(dw.zh)}</span></div>
       <div class="daily-list">${dailyRows}</div>
-    </section>
-
-    <section class="quote-card">
-      <div class="quote-mark">“</div>
-      <div class="quote-text">${esc(quote)}</div>
     </section>
 
     <h2 class="sec-title">我的語言</h2>
