@@ -84,7 +84,10 @@ function router() {
     if (mode === 'flashcards') return go(() => renderFlashcards(lang), hash);
     if (mode === 'vocab') return go(() => renderVocabQuiz(lang), hash);
     if (mode === 'grammar') return go(() => renderGrammarQuiz(lang), hash);
-    if (mode === 'reading') return go(() => renderReadingList(lang), hash);
+    if (mode === 'reading')
+      return parts[3]
+        ? go(() => renderReading(lang, parts[3]), hash)
+        : go(() => renderReadingList(lang), hash);
     if (mode === 'script') return go(() => renderScriptDrill(lang), hash);
   }
   if (parts[0] === 'review') return go(renderReview, '/review');
@@ -589,19 +592,16 @@ function renderReadingList(lang) {
   const list = (lang.content.reading || [])
     .map(
       (r) => `
-      <button class="mode-card read-item" data-id="${r.id}">
+      <a class="mode-card read-item" href="#/lang/${lang.code}/reading/${r.id}">
         <span class="mode-icon">📖</span>
         <span class="mode-text"><strong>${esc(r.title)}</strong><small>${esc(r.level)} · ${r.questions.length} 題理解</small></span>
         <span class="chev">›</span>
-      </button>`
+      </a>`
     )
     .join('');
   app.innerHTML = `
     <header class="bar"><a class="back" href="${back}">‹ 返回</a><h2>📖 閱讀練習</h2></header>
     <section class="mode-list">${list || '<p class="hint center">尚無閱讀內容。</p>'}</section>`;
-  app.querySelectorAll('.read-item').forEach((b) => {
-    b.onclick = () => renderReading(lang, b.dataset.id);
-  });
 }
 
 function renderReading(lang, id) {
