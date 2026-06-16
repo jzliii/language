@@ -13,12 +13,30 @@ export function canSpeak() {
   return typeof speechSynthesis !== 'undefined' && typeof SpeechSynthesisUtterance !== 'undefined';
 }
 
+// 各語言偏好的語音名稱（依許願：英=RP 英腔、西=西班牙、義=標準義語）。
+// 找得到就優先用，找不到就退回同語言任一可用語音。
+const PREFERRED = {
+  'en-GB': ['Google UK English', 'Daniel', 'Arthur', 'Serena', 'Kate', 'Sonia'],
+  'es-ES': ['Google español de España', 'Google español', 'Mónica', 'Monica', 'Jorge'],
+  'it-IT': ['Google italiano', 'Alice', 'Federica', 'Luca'],
+  'ja-JP': ['Google 日本語', 'Kyoko', 'O-ren'],
+  'ko-KR': ['Google 한국의', 'Yuna', 'Sora'],
+  'sv-SE': ['Google svenska', 'Alva', 'Klara'],
+};
+
 function pickVoice(lang) {
   const voices = speechSynthesis.getVoices();
-  // 先找完全符合，再找語言前綴符合（如 en）
+  const want = lang.toLowerCase();
+  const prefix = lang.split('-')[0].toLowerCase();
+  // 完全符合地區的語音（如 en-GB），優先挑偏好名單內的
+  const exact = voices.filter((v) => v.lang.toLowerCase().replace('_', '-') === want);
+  const prefs = PREFERRED[lang] || [];
+  const byName = (list) =>
+    list.find((v) => prefs.some((p) => v.name.toLowerCase().includes(p.toLowerCase())));
   return (
-    voices.find((v) => v.lang.toLowerCase() === lang.toLowerCase()) ||
-    voices.find((v) => v.lang.toLowerCase().startsWith(lang.split('-')[0].toLowerCase()))
+    byName(exact) ||
+    exact[0] ||
+    voices.find((v) => v.lang.toLowerCase().startsWith(prefix))
   );
 }
 
