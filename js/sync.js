@@ -4,12 +4,15 @@ import { firebaseConfig, isConfigured } from './firebase-config.js';
 import * as store from './store.js';
 
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.2';
+const LAST_SYNC_KEY = 'polyglot-last-sync';
 
 let authInstance = null;
 let db = null;
 let docRef = null;
 let saveTimer = null;
 let user = null;
+let syncing = false;
+let lastSync = loadLastSync();
 const changeListeners = [];
 
 export function isReady() {
@@ -18,6 +21,30 @@ export function isReady() {
 
 export function getUser() {
   return user;
+}
+
+// 上次成功同步的時間（毫秒），未同步過則為 null
+export function getLastSync() {
+  return lastSync;
+}
+
+// 是否正在同步中
+export function isSyncing() {
+  return syncing;
+}
+
+function loadLastSync() {
+  const v = Number(localStorage.getItem(LAST_SYNC_KEY));
+  return v > 0 ? v : null;
+}
+
+function markSynced() {
+  lastSync = Date.now();
+  try {
+    localStorage.setItem(LAST_SYNC_KEY, String(lastSync));
+  } catch {
+    /* 忽略 */
+  }
 }
 
 export function onChange(fn) {
@@ -66,14 +93,20 @@ export async function initSync() {
 }
 
 async function pullAndMerge(firestore) {
+  syncing = true;
+  emit();
   try {
     const snap = await firestore.getDoc(docRef);
     const remote = snap.exists() ? snap.data().state : null;
     const merged = store.merge(store.getState(), remote);
     store.replaceState(merged); // 寫回本機（也會觸發一次雲端寫入）
     await firestore.setDoc(docRef, { state: merged, updatedAt: Date.now() });
+    markSynced();
   } catch (e) {
     console.warn('雲端進度合併失敗', e);
+  } finally {
+    syncing = false;
+    emit();
   }
 }
 
@@ -88,9 +121,18 @@ async function saveNow() {
   try {
     const firestore = await import(`${SDK}/firebase-firestore.js`);
     await firestore.setDoc(docRef, { state: store.getState(), updatedAt: Date.now() });
+    markSynced();
+    emit();
   } catch (e) {
     console.warn('寫入雲端失敗', e);
   }
+}
+
+// 手動立即同步（按鈕用）：抓雲端、合併、再寫回
+export async function syncNow() {
+  if (!isConfigured || !docRef || syncing) return;
+  const firestore = await import(`${SDK}/firebase-firestore.js`);
+  await pullAndMerge(firestore);
 }
 
 export async function signIn() {

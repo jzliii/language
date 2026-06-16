@@ -107,12 +107,25 @@ function renderHome() {
 }
 
 // ---------- 雲端同步狀態列 ----------
+function relTime(ts) {
+  if (!ts) return '尚未同步';
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return '剛剛';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} 分鐘前`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} 小時前`;
+  return `${Math.floor(h / 24)} 天前`;
+}
+
 function syncBarHtml() {
   if (!sync.isReady()) return ''; // 尚未設定 Firebase 就不顯示
   const u = sync.getUser();
   if (u) {
     const who = u.displayName || u.email || '已登入';
-    return `<span class="sync-status">☁️ 已同步 · ${esc(who)}</span>
+    const status = sync.isSyncing() ? '同步中…' : `上次同步：${relTime(sync.getLastSync())}`;
+    return `<span class="sync-status">☁️ ${esc(who)} · ${status}</span>
+      <button class="btn small" id="sync-now" ${sync.isSyncing() ? 'disabled' : ''}>立即同步</button>
       <button class="btn small" id="sync-out">登出</button>`;
   }
   return `<button class="btn small" id="sync-in">☁️ 用 Google 登入同步</button>`;
@@ -123,6 +136,8 @@ function bindSyncBar() {
   if (inBtn) inBtn.onclick = () => sync.signIn();
   const outBtn = document.getElementById('sync-out');
   if (outBtn) outBtn.onclick = () => sync.signOutUser();
+  const nowBtn = document.getElementById('sync-now');
+  if (nowBtn) nowBtn.onclick = () => sync.syncNow();
 }
 
 // ---------- 語言選單 ----------
