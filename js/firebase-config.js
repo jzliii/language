@@ -1,14 +1,17 @@
-// ⚙️ Firebase 設定
-// 把下面的值換成你自己的 Firebase 專案設定：
-//   Firebase Console → 專案設定（齒輪）→「一般」→ 你的應用程式 → SDK 設定與配置 → Config
-// 設定好之前，網站照常運作，只是首頁的「雲端同步」按鈕會提示尚未設定。
+// ⚙️ Firebase 設定（duolange-c6ef1）
+// 這些是 Firebase 的「網頁用 config」，本來就會出現在前端原始碼、可以公開；
+// 真正的保護來自 Firestore 安全規則（每人只能存取自己的 progress 文件）。
 //
-// 詳細步驟見 README 的「跨裝置同步（Firebase）」章節。
+// 跨裝置同步是用 CDN 版 Firebase SDK（見 js/sync.js 從 gstatic 載入），
+// 純靜態網站、不需要 npm 或打包工具。
 export const firebaseConfig = {
-  apiKey: 'YOUR_API_KEY',
-  authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
-  projectId: 'YOUR_PROJECT_ID',
-  appId: 'YOUR_APP_ID',
+  apiKey: 'AIzaSyC-BsgagCEvxRw42IoDJ5gqrMVuP72K9zQ',
+  authDomain: 'duolange-c6ef1.firebaseapp.com',
+  projectId: 'duolange-c6ef1',
+  storageBucket: 'duolange-c6ef1.firebasestorage.app',
+  messagingSenderId: '793007099961',
+  appId: '1:793007099961:web:d2cf31f5b191f80fae3de8',
+  measurementId: 'G-Y7FZP2L3GS',
 };
 
 // 是否已填入真正的設定（用來決定要不要啟用同步功能）
