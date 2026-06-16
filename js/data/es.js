@@ -1,0 +1,47 @@
+// 西班牙語 入門：旅行與基礎對話（發音已 OK，著重會話）
+export default {
+  vocab: [
+    { id: 'es-v1', front: 'Hola', reading: 'O-la', back: '嗨／你好', example: '¡Hola! ¿Qué tal? (嗨！你好嗎？)' },
+    { id: 'es-v2', front: 'Buenos días', reading: 'BWE-nos DI-as', back: '早安', example: 'Buenos días, señora. (女士早安)' },
+    { id: 'es-v3', front: 'Buenas tardes', reading: 'BWE-nas TAR-des', back: '午安／下午好', example: 'Buenas tardes a todos. (大家午安)' },
+    { id: 'es-v4', front: 'Gracias', reading: 'GRA-thyas', back: '謝謝', example: 'Muchas gracias. (非常感謝)' },
+    { id: 'es-v5', front: 'De nada', reading: 'de NA-da', back: '不客氣', example: '— Gracias. — De nada. (謝謝／不客氣)' },
+    { id: 'es-v6', front: 'Por favor', reading: 'por fa-BOR', back: '請 (拜託)', example: 'Un café, por favor. (請給我一杯咖啡)' },
+    { id: 'es-v7', front: 'Perdón', reading: 'per-DON', back: '不好意思、抱歉', example: 'Perdón, ¿dónde está el baño? (抱歉，廁所在哪？)' },
+    { id: 'es-v8', front: 'Sí / No', reading: 'si / no', back: '是／不是', example: 'Sí, gracias. (好的，謝謝)' },
+    { id: 'es-v9', front: 'La cuenta', reading: 'la KWEN-ta', back: '帳單', example: 'La cuenta, por favor. (請給我帳單)' },
+    { id: 'es-v10', front: 'Un café', reading: 'un ka-FE', back: '一杯咖啡', example: 'Quiero un café. (我想要一杯咖啡)' },
+    { id: 'es-v11', front: 'Una cerveza', reading: 'U-na ther-BE-tha', back: '一杯啤酒', example: 'Una cerveza, por favor. (一杯啤酒，謝謝)' },
+    { id: 'es-v12', front: 'El agua', reading: 'el A-gwa', back: '水', example: 'Un vaso de agua, por favor. (請給我一杯水)' },
+    { id: 'es-v13', front: 'La carta', reading: 'la KAR-ta', back: '菜單', example: 'La carta, por favor. (請給我菜單)' },
+    { id: 'es-v14', front: 'Quiero', reading: 'KYE-ro', back: '我想要', example: 'Quiero una paella. (我想要一份海鮮飯)' },
+    { id: 'es-v15', front: '¿Cuánto cuesta?', reading: 'KWAN-to KWES-ta', back: '多少錢？', example: '¿Cuánto cuesta esto? (這個多少錢？)' },
+    { id: 'es-v16', front: 'La estación', reading: 'la es-ta-THYON', back: '車站', example: '¿Dónde está la estación? (車站在哪？)' },
+    { id: 'es-v17', front: 'El billete', reading: 'el bi-YE-te', back: '車票', example: 'Un billete, por favor. (一張車票，謝謝)' },
+    { id: 'es-v18', front: '¿Dónde está…?', reading: 'DON-de es-TA', back: '…在哪裡？', example: '¿Dónde está el hotel? (飯店在哪？)' },
+    { id: 'es-v19', front: 'Adiós', reading: 'a-DYOS', back: '再見', example: 'Adiós y gracias. (再見，謝謝)' },
+    { id: 'es-v20', front: 'Me llamo…', reading: 'me YA-mo', back: '我叫…', example: 'Me llamo Eva. (我叫 Eva)' },
+  ],
+  grammar: [
+    { id: 'es-g1', type: 'mc', prompt: '___ café, por favor. (一杯咖啡)', options: ['un', 'una', 'el', 'la'], answer: 0, explanation: 'café 是陽性名詞，用不定冠詞 un。' },
+    { id: 'es-g2', type: 'mc', prompt: '___ cerveza, por favor. (一杯啤酒)', options: ['una', 'un', 'la', 'el'], answer: 0, explanation: 'cerveza 是陰性名詞，用 una。' },
+    { id: 'es-g3', type: 'mc', prompt: 'Quiero ___ paella. (我想要一份海鮮飯)', options: ['una', 'un', 'la', 'el'], answer: 0, explanation: 'paella 是陰性名詞，用 una。' },
+    { id: 'es-g4', type: 'mc', prompt: '¿Cómo ___? (你好嗎？)', options: ['estás', 'eres', 'tienes', 'vas'], answer: 0, explanation: '問狀態、心情用 estar：¿Cómo estás?' },
+    { id: 'es-g5', type: 'mc', prompt: '回答 "Gracias" 最自然的是：', options: ['De nada', 'Perdón', 'Hola', 'Adiós'], answer: 0, explanation: 'De nada＝不客氣，是對 Gracias 的標準回應。' },
+    { id: 'es-g6', type: 'mc', prompt: '「這個多少錢？」', options: ['¿Cuánto cuesta?', '¿Cómo estás?', '¿Dónde está?', '¿Qué tal?'], answer: 0, explanation: '¿Cuánto cuesta?＝（這個）多少錢？' },
+    { id: 'es-g7', type: 'mc', prompt: '「我叫 Marco」：Me ___ Marco.', options: ['llamo', 'llamas', 'llama', 'nombre'], answer: 0, explanation: 'llamarse 的第一人稱：me llamo＝我叫。' },
+    { id: 'es-g8', type: 'mc', prompt: '¿Dónde ___ la estación? (車站在哪？)', options: ['está', 'es', 'tiene', 'hay'], answer: 0, explanation: '表示位置用 estar → está。' },
+  ],
+  reading: [
+    {
+      id: 'es-r1', title: 'En el restaurante', level: '入門',
+      text: '— ¡Buenas tardes! ¿Qué desea?\n— Buenas tardes. Quiero una paella y una cerveza, por favor.\n— ¿Algo más?\n— No, gracias. ¿Cuánto cuesta?\n— Son quince euros.\n— Aquí tiene. Gracias.\n— A usted. ¡Buen provecho!',
+      translation: '—下午好！您想要什麼？\n—下午好。請給我一份海鮮飯和一杯啤酒。\n—還要別的嗎？\n—不用了，謝謝。多少錢？\n—一共十五歐元。\n—給您。謝謝。\n—謝謝您。請慢用！',
+      questions: [
+        { q: '客人點了什麼？', options: ['海鮮飯和啤酒', '咖啡和可頌', '水和麵包', '披薩'], answer: 0 },
+        { q: '一共多少錢？', options: ['十歐元', '十五歐元', '二十歐元', '五歐元'], answer: 1 },
+        { q: '「¡Buen provecho!」是什麼意思？', options: ['再見', '請慢用', '多少錢', '歡迎'], answer: 1 },
+      ],
+    },
+  ],
+};

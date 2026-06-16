@@ -1,4 +1,5 @@
 import { LANGUAGES, getLang } from './data/index.js';
+import { DAILY } from './data/daily.js';
 import * as store from './store.js';
 import * as srs from './srs.js';
 import { speak, canSpeak, hasVoiceFor } from './tts.js';
@@ -20,7 +21,7 @@ const esc = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 const speakBtn = (text, lang) =>
-  canSpeak()
+  canSpeak() && lang
     ? `<button class="speak" data-speak="${esc(text)}" data-lang="${lang}" title="朗讀" aria-label="朗讀">🔊</button>`
     : '';
 
@@ -41,161 +42,216 @@ const MODES = [
   { id: 'script', icon: '🔤', name: '拼音／閱讀辨識', desc: '看文字選正確讀音', needs: 'reading_drill' },
 ];
 
-// 計算某語言該模式「到期需複習」的數量（僅 flashcards）
+// 某語言「到期需複習」的數量（含尚未學過的新卡）
 function dueCount(lang) {
   const vocab = lang.content.vocab || [];
   return vocab.filter((v) => srs.isDue(store.getCard(`${lang.code}:vocab:${v.id}`))).length;
 }
 
+// 單字熟練度統計：已熟（reps≥2）、學習中（已建卡但 reps<2）
+function vocabStats(lang) {
+  const vocab = lang.content.vocab || [];
+  let mastered = 0;
+  let learning = 0;
+  for (const v of vocab) {
+    const c = store.getCard(`${lang.code}:vocab:${v.id}`);
+    if (!c) continue;
+    if ((c.reps || 0) >= 2) mastered++;
+    else learning++;
+  }
+  return { total: vocab.length, mastered, learning, studied: mastered + learning };
+}
+
+const pct = (n, d) => (d ? Math.round((n / d) * 100) : 0);
+
+function dayIndex() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  return Math.floor((now - start) / 86400000);
+}
+
 // ---------- 路由 ----------
 function router() {
   const hash = location.hash.slice(1) || '/';
-  const parts = hash.split('/').filter(Boolean); // e.g. ['lang','ja','vocab']
+  const parts = hash.split('/').filter(Boolean);
   window.scrollTo(0, 0);
+
   if (parts[0] === 'lang' && parts[1]) {
     const lang = getLang(parts[1]);
-    if (!lang) return renderHome();
+    if (!lang) return go(renderDashboard, '/');
     const mode = parts[2];
-    if (!mode) return renderLangMenu(lang);
-    if (mode === 'flashcards') return renderFlashcards(lang);
-    if (mode === 'vocab') return renderVocabQuiz(lang);
-    if (mode === 'grammar') return renderGrammarQuiz(lang);
-    if (mode === 'reading') return renderReadingList(lang);
-    if (mode === 'reading' && parts[3]) return renderReading(lang, parts[3]);
-    if (mode === 'read' && parts[3]) return renderReading(lang, parts[3]);
-    if (mode === 'script') return renderScriptDrill(lang);
+    if (!mode) return go(() => renderLangMenu(lang), hash);
+    if (mode === 'flashcards') return go(() => renderFlashcards(lang), hash);
+    if (mode === 'vocab') return go(() => renderVocabQuiz(lang), hash);
+    if (mode === 'grammar') return go(() => renderGrammarQuiz(lang), hash);
+    if (mode === 'reading') return go(() => renderReadingList(lang), hash);
+    if (mode === 'script') return go(() => renderScriptDrill(lang), hash);
   }
-  renderHome();
+  if (parts[0] === 'review') return go(renderReview, '/review');
+  if (parts[0] === 'wordbook') return go(renderWordbook, '/wordbook');
+  if (parts[0] === 'settings') return go(renderSettings, '/settings');
+  return go(renderDashboard, '/');
+}
+
+function go(render, hash) {
+  render();
+  setActiveTab(hash);
 }
 
 window.addEventListener('hashchange', router);
 window.addEventListener('DOMContentLoaded', router);
 
-// 雲端同步：載入時初始化；登入狀態或合併完成後，若正在首頁就刷新畫面（更新待複習數與按鈕）
-sync.initSync();
-sync.onChange(() => {
-  const hash = location.hash.slice(1) || '/';
-  if (hash === '/') renderHome();
-});
+// ---------- 底部分頁導覽 ----------
+const TABS = [
+  { id: '/', icon: '🏠', label: '首頁', href: '#/' },
+  { id: '/review', icon: '🔁', label: '複習', href: '#/review' },
+  { id: '/wordbook', icon: '📚', label: '單字本', href: '#/wordbook' },
+  { id: '/settings', icon: '⚙️', label: '設定', href: '#/settings' },
+];
 
-// ---------- 首頁 ----------
-function renderHome() {
+function createTabBar() {
+  const nav = document.createElement('nav');
+  nav.className = 'tabbar';
+  nav.innerHTML = TABS.map(
+    (t) => `<a class="tab" data-tab="${t.id}" href="${t.href}"><span class="tab-ic">${t.icon}</span><small>${t.label}</small></a>`
+  ).join('');
+  document.body.appendChild(nav);
+}
+
+function setActiveTab(hash) {
+  const top = '/' + (hash.split('/').filter(Boolean)[0] || '');
+  // 語言子頁歸到「首頁」
+  const active = TABS.some((t) => t.id === top) ? top : '/';
+  document.querySelectorAll('.tab').forEach((a) => {
+    a.classList.toggle('on', a.dataset.tab === active);
+  });
+}
+
+createTabBar();
+
+// ---------- 首頁 Dashboard ----------
+function renderDashboard() {
   const streak = store.getStreak();
+  const dues = LANGUAGES.map((l) => ({ l, due: dueCount(l) }));
+  const totalDue = dues.reduce((s, d) => s + d.due, 0);
+
+  const dueGrid = dues
+    .map(
+      ({ l, due }) =>
+        `<div class="due-item"><span class="due-flag">${l.flag}</span><span class="due-n ${due ? '' : 'zero'}">${due}</span><span class="due-name">${esc(l.short)}</span></div>`
+    )
+    .join('');
+
+  const dw = DAILY[dayIndex() % DAILY.length];
+  const dailyRows = dw.items
+    .map((it) => {
+      const lang = getLang(it.code);
+      return `<div class="daily-row">
+        <span class="daily-flag">${lang ? lang.flag : ''}</span>
+        <span class="daily-w">${esc(it.w)} ${speakBtn(it.w, lang ? lang.tts : '')}</span>
+        <span class="daily-r">${esc(it.r)}</span>
+      </div>`;
+    })
+    .join('');
+
   const cards = LANGUAGES.map((l) => {
+    const st = vocabStats(l);
+    const p = pct(st.mastered, st.total);
     const due = dueCount(l);
     return `
-      <a class="lang-card" href="#/lang/${l.code}">
-        <span class="flag">${l.flag}</span>
-        <span class="lang-info">
+      <a class="lang-row${l.light ? ' light' : ''}" href="#/lang/${l.code}" style="background:${l.color}">
+        <span class="lr-flag">${l.flag}</span>
+        <span class="lr-main">
           <strong>${l.name}</strong>
           <small>${esc(l.level)}</small>
+          <span class="pbar"><i style="width:${p}%"></i></span>
+          <span class="lr-stat">熟練 ${st.mastered}/${st.total}（${p}%）</span>
         </span>
-        ${due > 0 ? `<span class="badge" title="待複習單字">${due}</span>` : '<span class="badge done">✓</span>'}
+        <span class="lr-badge${due ? '' : ' done'}">${due || '✓'}</span>
       </a>`;
   }).join('');
 
   app.innerHTML = `
-    <header class="hero">
-      <h1>🌍 我的語言練習室</h1>
-      <p class="sub">背單字 · 文法 · 閱讀，五種語言一個地方搞定</p>
-      <div class="streak">🔥 連續學習 <strong>${streak}</strong> 天</div>
-      <div class="sync-bar">${syncBarHtml()}</div>
+    <header class="topbar">
+      <span class="brand">🌱 我的語言練習室</span>
+      <span class="streak">🔥 <strong>${streak}</strong> 天</span>
     </header>
-    <section class="lang-grid">${cards}</section>
-    <footer class="foot">進度自動存在這個瀏覽器裡 · 每天回來複習到期的單字 💪</footer>`;
-  bindSyncBar();
-}
 
-// ---------- 雲端同步狀態列 ----------
-function relTime(ts) {
-  if (!ts) return '尚未同步';
-  const s = Math.floor((Date.now() - ts) / 1000);
-  if (s < 60) return '剛剛';
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m} 分鐘前`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h} 小時前`;
-  return `${Math.floor(h / 24)} 天前`;
-}
+    <section class="dash-card">
+      <div class="dash-h">📚 今日待複習 <span class="dash-total">共 ${totalDue} 項</span></div>
+      <div class="due-grid">${dueGrid}</div>
+      ${totalDue ? '<a class="btn primary big dash-cta" href="#/review">開始綜合複習</a>' : '<p class="hint center">今天都複習完了，太強了 🎉</p>'}
+    </section>
 
-function syncBarHtml() {
-  if (!sync.isReady()) return ''; // 尚未設定 Firebase 就不顯示
-  const u = sync.getUser();
-  if (u) {
-    const who = u.displayName || u.email || '已登入';
-    const status = sync.isSyncing() ? '同步中…' : `上次同步：${relTime(sync.getLastSync())}`;
-    return `<span class="sync-status">☁️ ${esc(who)} · ${status}</span>
-      <button class="btn small" id="sync-now" ${sync.isSyncing() ? 'disabled' : ''}>立即同步</button>
-      <button class="btn small" id="sync-out">登出</button>`;
-  }
-  return `<button class="btn small" id="sync-in">☁️ 用 Google 登入同步</button>`;
-}
+    <section class="dash-card">
+      <div class="dash-h">🌍 每日一字 · <span class="daily-zh">${esc(dw.zh)}</span></div>
+      <div class="daily-list">${dailyRows}</div>
+    </section>
 
-function bindSyncBar() {
-  const inBtn = document.getElementById('sync-in');
-  if (inBtn) inBtn.onclick = () => sync.signIn();
-  const outBtn = document.getElementById('sync-out');
-  if (outBtn) outBtn.onclick = () => sync.signOutUser();
-  const nowBtn = document.getElementById('sync-now');
-  if (nowBtn) nowBtn.onclick = () => sync.syncNow();
+    <h2 class="sec-title">我的語言</h2>
+    <section class="lang-grid">${cards}</section>`;
+  bindSpeak(app);
 }
 
 // ---------- 語言選單 ----------
 function renderLangMenu(lang) {
   const due = dueCount(lang);
-  const modes = MODES.filter((m) => !m.needs || lang.content[m.needs]?.length).map((m) => {
-    const count = m.id === 'reading'
-      ? (lang.content.reading?.length || 0)
-      : m.id === 'flashcards'
-        ? due
-        : null;
-    const score = store.getScore(lang.code, m.id);
-    let meta = '';
-    if (m.id === 'flashcards') meta = due > 0 ? `<em>${due} 個待複習</em>` : '<em>今天都複習完了 ✓</em>';
-    else if (m.id === 'reading') meta = `<em>${count} 篇短文</em>`;
-    else if (score) meta = `<em>最佳 ${score.best}%</em>`;
-    return `
-      <a class="mode-card" href="#/lang/${lang.code}/${m.id}">
-        <span class="mode-icon">${m.icon}</span>
-        <span class="mode-text"><strong>${m.name}</strong><small>${m.desc}</small>${meta}</span>
-        <span class="chev">›</span>
-      </a>`;
-  }).join('');
+  const st = vocabStats(lang);
+  const p = pct(st.mastered, st.total);
+  const modes = MODES.filter((m) => !m.needs || lang.content[m.needs]?.length)
+    .map((m) => {
+      const score = store.getScore(lang.code, m.id);
+      let meta = '';
+      if (m.id === 'flashcards') meta = due > 0 ? `<em>${due} 個待複習</em>` : '<em>今天都複習完了 ✓</em>';
+      else if (m.id === 'reading') meta = `<em>${lang.content.reading?.length || 0} 篇短文</em>`;
+      else if (score) meta = `<em>最佳 ${score.best}%</em>`;
+      return `
+        <a class="mode-card" href="#/lang/${lang.code}/${m.id}">
+          <span class="mode-icon">${m.icon}</span>
+          <span class="mode-text"><strong>${m.name}</strong><small>${m.desc}</small>${meta}</span>
+          <span class="chev">›</span>
+        </a>`;
+    })
+    .join('');
 
   app.innerHTML = `
     <header class="bar">
-      <a class="back" href="#/">‹ 回首頁</a>
+      <a class="back" href="#/">‹ 首頁</a>
       <h2>${lang.flag} ${lang.name} <small>${esc(lang.level)}</small></h2>
     </header>
+    <section class="lang-progress" style="--c:${lang.color}">
+      <div class="lp-top"><span>單字熟練度</span><span>${st.mastered}/${st.total}（${p}%）</span></div>
+      <span class="pbar big"><i style="width:${p}%;background:${lang.color}"></i></span>
+      <div class="lp-sub">學習中 ${st.learning} · 待複習 ${due}</div>
+    </section>
     <section class="mode-list">${modes}</section>`;
   if (!hasVoiceFor(lang.tts)) {
-    app.insertAdjacentHTML('beforeend',
-      `<p class="hint">提示：你的瀏覽器可能沒有安裝「${esc(lang.name)}」語音，朗讀功能或許無法發聲。Chrome／Edge 通常支援最完整。</p>`);
+    app.insertAdjacentHTML(
+      'beforeend',
+      `<p class="hint">提示：你的瀏覽器可能沒有安裝「${esc(lang.name)}」語音，朗讀功能或許無法發聲。Chrome／Edge 通常支援最完整。</p>`
+    );
   }
 }
 
-// ---------- 背單字（SRS 翻卡）----------
-function renderFlashcards(lang) {
-  const vocab = lang.content.vocab || [];
-  let queue = vocab.filter((v) => srs.isDue(store.getCard(`${lang.code}:vocab:${v.id}`)));
-  const reviewingAll = queue.length === 0;
-  if (reviewingAll) queue = shuffle(vocab).slice(0, Math.min(vocab.length, 15));
-  else queue = shuffle(queue);
-
+// ---------- 背單字（SRS 翻卡，通用 runner）----------
+// items: [{ lang, v }]
+function runFlashcards({ title, items, backHref, reviewingAll, retry, mixed }) {
+  let queue = [...items];
   let idx = 0;
   let done = 0;
 
   function showCard() {
     if (idx >= queue.length) return finish();
-    const v = queue[idx];
+    const { lang, v } = queue[idx];
     app.innerHTML = `
       <header class="bar">
-        <a class="back" href="#/lang/${lang.code}">‹ 返回</a>
-        <h2>🃏 背單字</h2>
+        <a class="back" href="${backHref}">‹ 返回</a>
+        <h2>${title}</h2>
         <span class="progress-pill">${idx + 1} / ${queue.length}</span>
       </header>
       ${reviewingAll ? '<p class="hint center">今天沒有到期的卡片，這是額外複習回合 🌟</p>' : ''}
       <div class="flashcard" id="card">
+        ${mixed ? `<div class="fc-tag">${lang.flag} ${esc(lang.name)}</div>` : ''}
         <div class="fc-front">
           <div class="fc-word">${esc(v.front)} ${speakBtn(v.front, lang.tts)}</div>
           ${v.reading ? `<div class="fc-reading">${esc(v.reading)}</div>` : ''}
@@ -227,13 +283,11 @@ function renderFlashcards(lang) {
   }
 
   function rate(q) {
-    const v = queue[idx];
+    const { lang, v } = queue[idx];
     const key = `${lang.code}:vocab:${v.id}`;
     const card = store.getCard(key) || srs.newCard();
-    const updated = srs.review(card, q);
-    store.setCard(key, updated);
-    // 答錯的卡片排到隊伍後面再練一次
-    if (q === 0) queue.push(v);
+    store.setCard(key, srs.review(card, q));
+    if (q === 0) queue.push({ lang, v }); // 答錯排到後面再練
     done++;
     idx++;
     showCard();
@@ -242,23 +296,68 @@ function renderFlashcards(lang) {
   function finish() {
     store.markStudied();
     app.innerHTML = `
-      <header class="bar"><a class="back" href="#/lang/${lang.code}">‹ 返回</a><h2>🃏 完成</h2></header>
+      <header class="bar"><a class="back" href="${backHref}">‹ 返回</a><h2>${title}</h2></header>
       <div class="result">
         <div class="result-big">👏</div>
         <p>這回合複習了 <strong>${done}</strong> 張卡片！</p>
         <div class="result-actions">
-          <a class="btn primary" href="#/lang/${lang.code}/flashcards">再來一輪</a>
-          <a class="btn" href="#/lang/${lang.code}">回到 ${lang.name} 選單</a>
+          <button class="btn primary" id="again">再來一輪</button>
+          <a class="btn" href="${backHref}">返回</a>
         </div>
       </div>`;
-    // 重新綁定「再來一輪」：因為 hash 相同不會觸發 router
-    app.querySelector('a[href$="/flashcards"]').onclick = (e) => {
-      e.preventDefault();
-      renderFlashcards(lang);
-    };
+    document.getElementById('again').onclick = retry;
   }
 
+  if (!queue.length) {
+    app.innerHTML = `
+      <header class="bar"><a class="back" href="${backHref}">‹ 返回</a><h2>${title}</h2></header>
+      <p class="hint center">目前沒有可複習的卡片 🎉</p>`;
+    return;
+  }
   showCard();
+}
+
+function renderFlashcards(lang) {
+  const vocab = lang.content.vocab || [];
+  let due = vocab.filter((v) => srs.isDue(store.getCard(`${lang.code}:vocab:${v.id}`)));
+  const reviewingAll = due.length === 0;
+  const picked = reviewingAll ? shuffle(vocab).slice(0, Math.min(vocab.length, 15)) : shuffle(due);
+  runFlashcards({
+    title: '🃏 背單字',
+    items: picked.map((v) => ({ lang, v })),
+    backHref: `#/lang/${lang.code}`,
+    reviewingAll,
+    retry: () => renderFlashcards(lang),
+  });
+}
+
+// ---------- 綜合複習（跨語言到期卡）----------
+function renderReview() {
+  const all = [];
+  for (const lang of LANGUAGES) {
+    for (const v of lang.content.vocab || []) {
+      const c = store.getCard(`${lang.code}:vocab:${v.id}`);
+      if (c && srs.isDue(c)) all.push({ lang, v });
+    }
+  }
+  if (!all.length) {
+    app.innerHTML = `
+      <header class="bar"><a class="back" href="#/">‹ 首頁</a><h2>🔁 綜合複習</h2></header>
+      <div class="result">
+        <div class="result-big">🎉</div>
+        <p>目前沒有到期的卡片！<br>先去各語言「背單字」建立一些卡片，之後就會在這裡集合複習。</p>
+        <div class="result-actions"><a class="btn primary" href="#/">回首頁</a></div>
+      </div>`;
+    return;
+  }
+  runFlashcards({
+    title: '🔁 綜合複習',
+    items: shuffle(all),
+    backHref: '#/',
+    reviewingAll: false,
+    mixed: true,
+    retry: () => renderReview(),
+  });
 }
 
 // ---------- 通用選擇題測驗 ----------
@@ -270,9 +369,7 @@ function runQuiz(lang, mode, title, icon, questions, backHref) {
   function show() {
     if (idx >= qs.length) return finish();
     const q = qs[idx];
-    const opts = q.options
-      .map((o, i) => `<button class="opt" data-i="${i}">${esc(o)}</button>`)
-      .join('');
+    const opts = q.options.map((o, i) => `<button class="opt" data-i="${i}">${esc(o)}</button>`).join('');
     app.innerHTML = `
       <header class="bar">
         <a class="back" href="${backHref}">‹ 返回</a>
@@ -313,26 +410,24 @@ function runQuiz(lang, mode, title, icon, questions, backHref) {
 
   function finish() {
     store.recordScore(lang.code, mode, correct, qs.length);
-    const pct = Math.round((correct / qs.length) * 100);
-    const emoji = pct >= 90 ? '🏆' : pct >= 70 ? '🎉' : pct >= 50 ? '💪' : '📚';
+    const p = pct(correct, qs.length);
+    const emoji = p >= 90 ? '🏆' : p >= 70 ? '🎉' : p >= 50 ? '💪' : '📚';
     app.innerHTML = `
       <header class="bar"><a class="back" href="${backHref}">‹ 返回</a><h2>${icon} 結果</h2></header>
       <div class="result">
         <div class="result-big">${emoji}</div>
-        <p>答對 <strong>${correct}</strong> / ${qs.length} 題（${pct}%）</p>
+        <p>答對 <strong>${correct}</strong> / ${qs.length} 題（${p}%）</p>
         <div class="result-actions">
           <button class="btn primary" id="retry">再做一次</button>
           <a class="btn" href="${backHref}">回到選單</a>
         </div>
       </div>`;
-    document.getElementById('retry').onclick = () =>
-      runQuiz(lang, mode, title, icon, questions, backHref);
+    document.getElementById('retry').onclick = () => runQuiz(lang, mode, title, icon, questions, backHref);
   }
 
   show();
 }
 
-// ---------- 單字選擇題 ----------
 function renderVocabQuiz(lang) {
   const vocab = lang.content.vocab || [];
   const back = `#/lang/${lang.code}`;
@@ -355,7 +450,6 @@ function renderVocabQuiz(lang) {
   runQuiz(lang, 'vocab', '單字練習', '✍️', questions, back);
 }
 
-// ---------- 文法選擇題 ----------
 function renderGrammarQuiz(lang) {
   const back = `#/lang/${lang.code}`;
   const items = lang.content.grammar || [];
@@ -366,7 +460,6 @@ function renderGrammarQuiz(lang) {
   runQuiz(lang, 'grammar', '文法練習', '📐', items, back);
 }
 
-// ---------- 拼音／閱讀辨識（韓語等）----------
 function renderScriptDrill(lang) {
   const back = `#/lang/${lang.code}`;
   const items = (lang.content.reading_drill || []).map((d) => ({
@@ -380,7 +473,7 @@ function renderScriptDrill(lang) {
   runQuiz(lang, 'script', '拼音／閱讀辨識', '🔤', items, back);
 }
 
-// ---------- 閱讀列表 ----------
+// ---------- 閱讀 ----------
 function renderReadingList(lang) {
   const back = `#/lang/${lang.code}`;
   const list = (lang.content.reading || [])
@@ -401,7 +494,6 @@ function renderReadingList(lang) {
   });
 }
 
-// ---------- 單篇閱讀 ----------
 function renderReading(lang, id) {
   const r = (lang.content.reading || []).find((x) => x.id === id);
   if (!r) return renderReadingList(lang);
@@ -469,3 +561,118 @@ function renderReading(lang, id) {
     });
   });
 }
+
+// ---------- 單字本（依語言 + 熟練度）----------
+function wordItem(v, lang) {
+  return `<li class="wb-word">
+    <span class="wb-front">${esc(v.front)} ${speakBtn(v.front, lang.tts)}</span>
+    ${v.reading ? `<span class="wb-reading">${esc(v.reading)}</span>` : ''}
+    <span class="wb-back">${esc(v.back)}</span>
+  </li>`;
+}
+
+function renderWordbook() {
+  let totalStudied = 0;
+  const sections = LANGUAGES.map((lang) => {
+    const vocab = lang.content.vocab || [];
+    const mastered = [];
+    const learning = [];
+    for (const v of vocab) {
+      const c = store.getCard(`${lang.code}:vocab:${v.id}`);
+      if (!c) continue;
+      ((c.reps || 0) >= 2 ? mastered : learning).push(v);
+    }
+    totalStudied += mastered.length + learning.length;
+    if (!mastered.length && !learning.length) {
+      return `
+        <section class="wb-lang">
+          <div class="wb-head" style="background:${lang.color}"><span>${lang.flag} ${lang.name}</span><span class="wb-count">尚未開始</span></div>
+          <p class="hint">去 <a href="#/lang/${lang.code}/flashcards">背單字</a> 翻幾張卡，這裡就會記錄下來。</p>
+        </section>`;
+    }
+    const group = (label, arr, cls) =>
+      arr.length
+        ? `<div class="wb-group"><div class="wb-group-h ${cls}">${label}（${arr.length}）</div><ul class="wb-list">${arr.map((v) => wordItem(v, lang)).join('')}</ul></div>`
+        : '';
+    return `
+      <section class="wb-lang">
+        <div class="wb-head" style="background:${lang.color}">
+          <span>${lang.flag} ${lang.name}</span>
+          <span class="wb-count">${mastered.length + learning.length} 字</span>
+        </div>
+        ${group('🌟 已熟', mastered, 'mastered')}
+        ${group('🌱 學習中', learning, 'learning')}
+      </section>`;
+  }).join('');
+
+  app.innerHTML = `
+    <header class="topbar"><span class="brand">📚 單字本</span></header>
+    <p class="wb-intro">翻卡複習過的單字會自動收進這裡，依語言與熟練度分類。目前共 <strong>${totalStudied}</strong> 字。</p>
+    ${sections}`;
+  bindSpeak(app);
+}
+
+// ---------- 設定 ----------
+function syncSectionHtml() {
+  if (!sync.isReady()) {
+    return `<p class="hint">尚未設定雲端同步。在 <code>js/firebase-config.js</code> 填入 Firebase 設定即可啟用跨裝置同步（步驟見 README）。</p>`;
+  }
+  const u = sync.getUser();
+  if (u) {
+    const who = u.displayName || u.email || '已登入';
+    const status = sync.isSyncing() ? '同步中…' : `上次同步：${relTime(sync.getLastSync())}`;
+    return `
+      <p class="set-status">☁️ ${esc(who)}<br><small>${status}</small></p>
+      <div class="set-actions">
+        <button class="btn primary" id="sync-now" ${sync.isSyncing() ? 'disabled' : ''}>立即同步</button>
+        <button class="btn" id="sync-out">登出</button>
+      </div>`;
+  }
+  return `<button class="btn primary big" id="sync-in">☁️ 用 Google 登入同步</button>`;
+}
+
+function relTime(ts) {
+  if (!ts) return '尚未同步';
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return '剛剛';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} 分鐘前`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} 小時前`;
+  return `${Math.floor(h / 24)} 天前`;
+}
+
+function renderSettings() {
+  app.innerHTML = `
+    <header class="topbar"><span class="brand">⚙️ 設定</span></header>
+    <section class="dash-card">
+      <div class="dash-h">雲端同步</div>
+      ${syncSectionHtml()}
+    </section>
+    <section class="dash-card">
+      <div class="dash-h">資料</div>
+      <p class="hint">進度存在這個瀏覽器（登入後另存雲端）。</p>
+      <button class="btn danger" id="reset">清除本機所有進度</button>
+    </section>
+    <p class="foot">🌱 我的語言練習室 · 進度自動儲存</p>`;
+
+  const inBtn = document.getElementById('sync-in');
+  if (inBtn) inBtn.onclick = () => sync.signIn();
+  const outBtn = document.getElementById('sync-out');
+  if (outBtn) outBtn.onclick = () => sync.signOutUser();
+  const nowBtn = document.getElementById('sync-now');
+  if (nowBtn) nowBtn.onclick = () => sync.syncNow();
+  document.getElementById('reset').onclick = () => {
+    if (confirm('確定要清除這個瀏覽器上的所有學習進度嗎？此動作無法復原。')) {
+      store.replaceState({});
+      renderSettings();
+    }
+  };
+}
+
+// ---------- 雲端同步初始化 ----------
+sync.initSync();
+sync.onChange(() => {
+  const hash = location.hash.slice(1) || '/';
+  if (hash === '/settings') renderSettings();
+});
