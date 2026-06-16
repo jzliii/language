@@ -1,15 +1,16 @@
 :root {
-  --bg: #f4eee2;
-  --bg2: #ece3d2;
-  --card: #fbf7ee;
-  --card2: #f2ead9;
-  --line: #e3d8c2;
-  --text: #3a2e22;
-  --mut: #8a7c6a;
-  --pri: #4f7a3f;
-  --pri2: #6e9c57;
+  --bg: #f1efe9;
+  --bg2: #e9e6dd;
+  --card: #ffffff;
+  --card2: #f6f5f0;
+  --line: #e6e3da;
+  --text: #20304f;
+  --mut: #8b8a98;
+  --pri: #1f3f8f;
+  --pri2: #3a5cb8;
+  --navy: #1b3576;
   --green: #2f9e54;
-  --red: #c2452f;
+  --red: #d2553f;
   --amber: #e0a92b;
   --radius: 16px;
 }
@@ -18,7 +19,7 @@
 
 body {
   font-family: -apple-system, "Segoe UI", "Noto Sans TC", "Noto Sans JP", "Noto Sans KR", Roboto, sans-serif;
-  background: linear-gradient(180deg, #f7f1e6 0%, var(--bg) 40%) fixed;
+  background: linear-gradient(180deg, #f6f4ee 0%, var(--bg) 40%) fixed;
   color: var(--text);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -181,13 +182,29 @@ body {
 .hidden { display: none !important; }
 
 /* ---- Dashboard 頂列 ---- */
-.topbar { display: flex; align-items: center; justify-content: space-between; padding: 6px 2px 16px; }
-.topbar .brand { font-size: 1.3rem; font-weight: 800; letter-spacing: .3px; }
-.topbar .streak {
-  margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: 999px;
-  padding: 6px 14px; font-size: .9rem;
+.topbar { padding: 6px 2px 14px; }
+.topbar .brand { display: block; font-size: 1.5rem; font-weight: 800; letter-spacing: .2px; }
+.topbar .brand .leaf { color: var(--green); }
+.topbar .tagline { color: var(--mut); font-size: .85rem; margin-top: 2px; }
+
+/* ---- Hero 卡（深藍）---- */
+.hero-card {
+  position: relative; overflow: hidden; color: #fff;
+  background: linear-gradient(135deg, #28509f 0%, var(--navy) 100%);
+  border-radius: 22px; padding: 22px 22px 24px; margin-bottom: 18px;
+  box-shadow: 0 12px 28px rgba(27, 53, 118, .28);
 }
-.topbar .streak strong { color: var(--amber); }
+.hero-greet { font-size: 1.5rem; font-weight: 800; }
+.hero-sub { opacity: .85; font-size: .92rem; margin-top: 4px; }
+.hero-streak {
+  display: inline-flex; align-items: center; gap: 10px; margin-top: 18px;
+  background: rgba(255, 255, 255, .14); border-radius: 14px; padding: 10px 16px;
+}
+.hero-streak .hs-ic { font-size: 1.3rem; }
+.hero-streak small { opacity: .85; display: block; font-size: .72rem; }
+.hero-streak strong { font-size: 1.4rem; }
+.hero-cat { position: absolute; right: 10px; bottom: -6px; width: 150px; opacity: .9; pointer-events: none; }
+.hero-cat svg { width: 100%; height: auto; }
 
 /* ---- Dashboard 卡片 ---- */
 .dash-card {
@@ -200,9 +217,9 @@ body {
 .dash-cta { margin-top: 14px; }
 
 .due-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
-.due-item { display: flex; flex-direction: column; align-items: center; gap: 2px; background: var(--bg2); border-radius: 12px; padding: 10px 4px; }
+.due-item { display: flex; flex-direction: column; align-items: center; gap: 2px; background: var(--card2); border-radius: 12px; padding: 10px 4px; }
 .due-flag { font-size: 1.3rem; }
-.due-n { font-weight: 800; font-size: 1.05rem; color: var(--red); }
+.due-n { font-weight: 800; font-size: 1.1rem; color: var(--pri); }
 .due-n.zero { color: var(--mut); }
 .due-name { font-size: .72rem; color: var(--mut); }
 
@@ -213,39 +230,55 @@ body {
 .daily-w { font-weight: 600; }
 .daily-r { color: var(--mut); font-size: .82rem; text-align: right; }
 
+/* ---- 名言 ---- */
+.quote-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 18px 18px 20px; margin-bottom: 16px; position: relative; }
+.quote-mark { color: var(--pri2); font-size: 2rem; font-weight: 800; line-height: .6; }
+.quote-text { font-size: 1.02rem; margin-top: 6px; }
+
 .sec-title { font-size: 1.05rem; margin: 6px 2px 12px; }
 
-/* ---- 語言色卡 ---- */
-.lang-grid { display: grid; gap: 12px; }
+/* ---- 語言列（白卡）---- */
+.lang-grid { display: grid; gap: 10px; }
 .lang-row {
-  display: flex; align-items: center; gap: 14px; padding: 16px 18px;
-  border-radius: var(--radius); text-decoration: none; color: #fff;
-  box-shadow: 0 6px 16px rgba(60, 46, 34, .12); transition: transform .12s ease;
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  text-decoration: none; color: var(--text); transition: transform .12s ease, border-color .12s;
 }
 .lang-row:active { transform: scale(.99); }
-.lang-row.light { color: #3a2e22; }
-.lr-flag { font-size: 2rem; line-height: 1; }
+.lang-row:hover { border-color: var(--pri2); }
+.lr-flag { font-size: 1.7rem; line-height: 1; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: var(--card2); border-radius: 12px; }
 .lr-main { display: flex; flex-direction: column; flex: 1; gap: 3px; min-width: 0; }
-.lr-main strong { font-size: 1.12rem; }
-.lr-main small { opacity: .85; font-size: .8rem; }
-.lr-stat { font-size: .74rem; opacity: .85; }
+.lr-main strong { font-size: 1.06rem; }
+.lr-main small { color: var(--mut); font-size: .78rem; }
+.lr-stat { font-size: .74rem; color: var(--mut); }
 .lr-badge {
-  min-width: 30px; height: 30px; padding: 0 9px; border-radius: 999px;
-  background: rgba(255, 255, 255, .25); color: #fff; font-weight: 700; font-size: .9rem;
+  min-width: 28px; height: 28px; padding: 0 8px; border-radius: 999px;
+  background: var(--pri); color: #fff; font-weight: 700; font-size: .85rem;
   display: flex; align-items: center; justify-content: center;
 }
-.lang-row.light .lr-badge { background: rgba(58, 46, 34, .18); color: #3a2e22; }
+.lr-badge.done { background: var(--card2); color: var(--green); }
 
 /* ---- 進度條 ---- */
-.pbar { display: block; height: 7px; border-radius: 999px; background: rgba(255, 255, 255, .35); overflow: hidden; }
-.lang-row.light .pbar { background: rgba(58, 46, 34, .15); }
-.pbar > i { display: block; height: 100%; background: #fff; border-radius: 999px; transition: width .3s ease; }
-.pbar.big { height: 12px; background: var(--bg2); }
-.pbar.big > i { background: var(--pri); }
+.pbar { display: block; height: 7px; border-radius: 999px; background: var(--bg2); overflow: hidden; }
+.pbar > i { display: block; height: 100%; background: var(--pri); border-radius: 999px; transition: width .3s ease; }
+.pbar.big { height: 12px; }
 
 .lang-progress { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
 .lp-top { display: flex; justify-content: space-between; font-size: .9rem; margin-bottom: 8px; font-weight: 600; }
 .lp-sub { color: var(--mut); font-size: .8rem; margin-top: 8px; }
+
+/* ---- 統計頁 ---- */
+.stat-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.stat-box { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 10px; text-align: center; }
+.stat-box .sb-n { font-size: 1.5rem; font-weight: 800; color: var(--pri); }
+.stat-box .sb-l { font-size: .74rem; color: var(--mut); margin-top: 2px; }
+.stat-lang { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; }
+.sl-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.sl-head strong { flex: 1; }
+.sl-head .sl-pct { color: var(--mut); font-size: .85rem; }
+.sl-scores { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.sl-chip { background: var(--card2); border-radius: 999px; padding: 4px 10px; font-size: .76rem; color: var(--mut); }
+.sl-chip b { color: var(--text); }
 
 /* ---- 翻卡語言標籤（綜合複習）---- */
 .fc-tag { font-size: .85rem; color: var(--mut); margin-bottom: 10px; }
@@ -254,6 +287,7 @@ body {
 .wb-intro { color: var(--mut); font-size: .88rem; margin-bottom: 16px; }
 .wb-lang { margin-bottom: 18px; }
 .wb-head { display: flex; justify-content: space-between; align-items: center; color: #fff; font-weight: 700; padding: 12px 16px; border-radius: 12px; }
+.wb-head.light { color: #20304f; }
 .wb-count { font-size: .82rem; font-weight: 600; opacity: .9; }
 .wb-group { margin-top: 10px; }
 .wb-group-h { font-size: .85rem; font-weight: 700; color: var(--mut); margin: 6px 2px; }
@@ -275,7 +309,7 @@ body {
 /* ---- 底部分頁列 ---- */
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
-  display: flex; background: rgba(251, 247, 238, .96); backdrop-filter: blur(8px);
+  display: flex; background: rgba(255, 255, 255, .97); backdrop-filter: blur(8px);
   border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom);
 }
 .tabbar .tab {

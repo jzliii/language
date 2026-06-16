@@ -89,6 +89,7 @@ function router() {
   }
   if (parts[0] === 'review') return go(renderReview, '/review');
   if (parts[0] === 'wordbook') return go(renderWordbook, '/wordbook');
+  if (parts[0] === 'stats') return go(renderStats, '/stats');
   if (parts[0] === 'settings') return go(renderSettings, '/settings');
   return go(renderDashboard, '/');
 }
@@ -106,7 +107,8 @@ const TABS = [
   { id: '/', icon: '🏠', label: '首頁', href: '#/' },
   { id: '/review', icon: '🔁', label: '複習', href: '#/review' },
   { id: '/wordbook', icon: '📚', label: '單字本', href: '#/wordbook' },
-  { id: '/settings', icon: '⚙️', label: '設定', href: '#/settings' },
+  { id: '/stats', icon: '📊', label: '統計', href: '#/stats' },
+  { id: '/settings', icon: '☁️', label: '同步', href: '#/settings' },
 ];
 
 function createTabBar() {
@@ -128,6 +130,44 @@ function setActiveTab(hash) {
 }
 
 createTabBar();
+
+// 名言（依日期輪替，不掛作者以免誤植）
+const QUOTES = [
+  '語言讓世界變大，也讓我們更自由。',
+  '會一種語言，就多活一次人生。',
+  '每天一點點，勝過偶爾的猛衝。',
+  '學語言沒有捷徑，但每一張卡都算數。',
+  '今天的複習，是明天脫口而出的底氣。',
+  '慢慢來，比較快。',
+  '開口的勇氣，比完美的文法更重要。',
+];
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 5) return '夜深了';
+  if (h < 11) return '早安';
+  if (h < 14) return '午安';
+  if (h < 18) return '午安';
+  return '晚安';
+}
+
+// 招呼語的名字：登入後用 Google 名字，否則不帶名
+function greetName() {
+  const u = sync.getUser && sync.getUser();
+  const n = u && (u.displayName || (u.email ? u.email.split('@')[0] : ''));
+  return n ? `，${n}` : '';
+}
+
+const CAT_SVG = `<svg viewBox="0 0 120 120" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M38 40 L30 22 L46 34 M82 40 L90 22 L74 34"/>
+  <path d="M30 58 a30 26 0 0 1 60 0 v6 a30 30 0 0 1 -60 0 z"/>
+  <rect x="40" y="50" width="16" height="11" rx="5"/><rect x="64" y="50" width="16" height="11" rx="5"/><path d="M56 55 h8"/>
+  <path d="M60 66 l-4 4 l4 3 l4 -3 z"/>
+  <path d="M40 74 q8 6 16 0 M64 74 q8 6 16 0"/>
+  <path d="M34 86 a26 26 0 0 0 52 0"/>
+  <path d="M86 96 q14 -2 12 -20" />
+  <rect x="92" y="74" width="14" height="20" rx="3"/><path d="M99 74 v-8 M99 66 q6 -2 6 -8"/>
+</svg>`;
 
 // ---------- 首頁 Dashboard ----------
 function renderDashboard() {
@@ -154,18 +194,20 @@ function renderDashboard() {
     })
     .join('');
 
+  const quote = QUOTES[dayIndex() % QUOTES.length];
+
   const cards = LANGUAGES.map((l) => {
     const st = vocabStats(l);
     const p = pct(st.mastered, st.total);
     const due = dueCount(l);
     return `
-      <a class="lang-row${l.light ? ' light' : ''}" href="#/lang/${l.code}" style="background:${l.color}">
+      <a class="lang-row" href="#/lang/${l.code}">
         <span class="lr-flag">${l.flag}</span>
         <span class="lr-main">
           <strong>${l.name}</strong>
           <small>${esc(l.level)}</small>
           <span class="pbar"><i style="width:${p}%"></i></span>
-          <span class="lr-stat">熟練 ${st.mastered}/${st.total}（${p}%）</span>
+          <span class="lr-stat">已熟 ${st.mastered}/${st.total}（${p}%）· 學過 ${st.studied} 字</span>
         </span>
         <span class="lr-badge${due ? '' : ' done'}">${due || '✓'}</span>
       </a>`;
@@ -173,12 +215,22 @@ function renderDashboard() {
 
   app.innerHTML = `
     <header class="topbar">
-      <span class="brand">🌱 我的語言練習室</span>
-      <span class="streak">🔥 <strong>${streak}</strong> 天</span>
+      <span class="brand">Language Garden <span class="leaf">🌱</span></span>
+      <div class="tagline">One brew, one word, one step closer.</div>
     </header>
 
+    <section class="hero-card">
+      <div class="hero-greet">${greeting()}${esc(greetName())}！</div>
+      <div class="hero-sub">今天也是精進語言的一天 ☕</div>
+      <div class="hero-streak">
+        <span class="hs-ic">🔥</span>
+        <span><small>連續學習</small><strong>${streak}</strong> 天</span>
+      </div>
+      <div class="hero-cat">${CAT_SVG}</div>
+    </section>
+
     <section class="dash-card">
-      <div class="dash-h">📚 今日待複習 <span class="dash-total">共 ${totalDue} 項</span></div>
+      <div class="dash-h">🧠 今日待複習 <span class="dash-total">共 ${totalDue} 項</span></div>
       <div class="due-grid">${dueGrid}</div>
       ${totalDue ? '<a class="btn primary big dash-cta" href="#/review">開始綜合複習</a>' : '<p class="hint center">今天都複習完了，太強了 🎉</p>'}
     </section>
@@ -188,9 +240,61 @@ function renderDashboard() {
       <div class="daily-list">${dailyRows}</div>
     </section>
 
+    <section class="quote-card">
+      <div class="quote-mark">“</div>
+      <div class="quote-text">${esc(quote)}</div>
+    </section>
+
     <h2 class="sec-title">我的語言</h2>
     <section class="lang-grid">${cards}</section>`;
   bindSpeak(app);
+}
+
+// ---------- 統計 ----------
+function renderStats() {
+  let totalStudied = 0;
+  let totalMastered = 0;
+  let activeLangs = 0;
+  const rows = LANGUAGES.map((l) => {
+    const st = vocabStats(l);
+    if (st.studied) activeLangs++;
+    totalStudied += st.studied;
+    totalMastered += st.mastered;
+    const p = pct(st.mastered, st.total);
+    const modes = [
+      ['flashcards', '背單字'],
+      ['vocab', '單字'],
+      ['grammar', '文法'],
+      ['reading', '閱讀'],
+      ['script', '拼音'],
+    ];
+    const chips = modes
+      .map(([m, label]) => {
+        const sc = store.getScore(l.code, m);
+        return sc ? `<span class="sl-chip">${label} <b>${sc.best}%</b></span>` : '';
+      })
+      .filter(Boolean)
+      .join('');
+    return `
+      <div class="stat-lang">
+        <div class="sl-head">
+          <span class="lr-flag">${l.flag}</span>
+          <strong>${l.name}</strong>
+          <span class="sl-pct">已熟 ${st.mastered}/${st.total}（${p}%）</span>
+        </div>
+        <span class="pbar big"><i style="width:${p}%"></i></span>
+        <div class="sl-scores">${chips || '<span class="sl-chip">尚無測驗紀錄</span>'}</div>
+      </div>`;
+  }).join('');
+
+  app.innerHTML = `
+    <header class="topbar"><span class="brand">📊 統計</span></header>
+    <div class="stat-overview">
+      <div class="stat-box"><div class="sb-n">${store.getStreak()}</div><div class="sb-l">連續天數</div></div>
+      <div class="stat-box"><div class="sb-n">${totalStudied}</div><div class="sb-l">學過單字</div></div>
+      <div class="stat-box"><div class="sb-n">${totalMastered}</div><div class="sb-l">已熟單字</div></div>
+    </div>
+    ${rows}`;
 }
 
 // ---------- 語言選單 ----------
@@ -586,7 +690,7 @@ function renderWordbook() {
     if (!mastered.length && !learning.length) {
       return `
         <section class="wb-lang">
-          <div class="wb-head" style="background:${lang.color}"><span>${lang.flag} ${lang.name}</span><span class="wb-count">尚未開始</span></div>
+          <div class="wb-head${lang.light ? ' light' : ''}" style="background:${lang.color}"><span>${lang.flag} ${lang.name}</span><span class="wb-count">尚未開始</span></div>
           <p class="hint">去 <a href="#/lang/${lang.code}/flashcards">背單字</a> 翻幾張卡，這裡就會記錄下來。</p>
         </section>`;
     }
@@ -596,7 +700,7 @@ function renderWordbook() {
         : '';
     return `
       <section class="wb-lang">
-        <div class="wb-head" style="background:${lang.color}">
+        <div class="wb-head${lang.light ? ' light' : ''}" style="background:${lang.color}">
           <span>${lang.flag} ${lang.name}</span>
           <span class="wb-count">${mastered.length + learning.length} 字</span>
         </div>
@@ -644,9 +748,9 @@ function relTime(ts) {
 
 function renderSettings() {
   app.innerHTML = `
-    <header class="topbar"><span class="brand">⚙️ 設定</span></header>
+    <header class="topbar"><span class="brand">☁️ 雲端同步</span></header>
     <section class="dash-card">
-      <div class="dash-h">雲端同步</div>
+      <div class="dash-h">跨裝置同步</div>
       ${syncSectionHtml()}
     </section>
     <section class="dash-card">
