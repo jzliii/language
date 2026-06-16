@@ -2,6 +2,7 @@ import { LANGUAGES, getLang } from './data/index.js';
 import * as store from './store.js';
 import * as srs from './srs.js';
 import { speak, canSpeak, hasVoiceFor } from './tts.js';
+import * as sync from './sync.js';
 
 const app = document.getElementById('app');
 
@@ -70,6 +71,13 @@ function router() {
 window.addEventListener('hashchange', router);
 window.addEventListener('DOMContentLoaded', router);
 
+// 雲端同步：載入時初始化；登入狀態或合併完成後，若正在首頁就刷新畫面（更新待複習數與按鈕）
+sync.initSync();
+sync.onChange(() => {
+  const hash = location.hash.slice(1) || '/';
+  if (hash === '/') renderHome();
+});
+
 // ---------- 首頁 ----------
 function renderHome() {
   const streak = store.getStreak();
@@ -91,9 +99,30 @@ function renderHome() {
       <h1>🌍 我的語言練習室</h1>
       <p class="sub">背單字 · 文法 · 閱讀，五種語言一個地方搞定</p>
       <div class="streak">🔥 連續學習 <strong>${streak}</strong> 天</div>
+      <div class="sync-bar">${syncBarHtml()}</div>
     </header>
     <section class="lang-grid">${cards}</section>
     <footer class="foot">進度自動存在這個瀏覽器裡 · 每天回來複習到期的單字 💪</footer>`;
+  bindSyncBar();
+}
+
+// ---------- 雲端同步狀態列 ----------
+function syncBarHtml() {
+  if (!sync.isReady()) return ''; // 尚未設定 Firebase 就不顯示
+  const u = sync.getUser();
+  if (u) {
+    const who = u.displayName || u.email || '已登入';
+    return `<span class="sync-status">☁️ 已同步 · ${esc(who)}</span>
+      <button class="btn small" id="sync-out">登出</button>`;
+  }
+  return `<button class="btn small" id="sync-in">☁️ 用 Google 登入同步</button>`;
+}
+
+function bindSyncBar() {
+  const inBtn = document.getElementById('sync-in');
+  if (inBtn) inBtn.onclick = () => sync.signIn();
+  const outBtn = document.getElementById('sync-out');
+  if (outBtn) outBtn.onclick = () => sync.signOutUser();
 }
 
 // ---------- 語言選單 ----------

@@ -37,6 +37,9 @@ body {
   background: var(--card); border: 1px solid var(--line); border-radius: 999px; font-size: .9rem;
 }
 .streak strong { color: var(--amber); font-size: 1.1rem; }
+.sync-bar { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.sync-bar:empty { display: none; }
+.sync-status { color: var(--mut); font-size: .82rem; }
 
 .lang-grid { display: grid; gap: 12px; margin-top: 8px; }
 .lang-card {

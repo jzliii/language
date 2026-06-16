@@ -1,7 +1,8 @@
-// 進度儲存於瀏覽器 localStorage。
+// 進度儲存於瀏覽器 localStorage（離線也能用）；可選擇登入後同步到雲端。
 const KEY = 'polyglot-progress-v1';
 
 let state = load();
+const subscribers = [];
 
 function load() {
   try {
@@ -12,11 +13,86 @@ function load() {
 }
 
 function persist() {
+  state.updatedAt = Date.now();
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
   } catch (e) {
     console.warn('無法儲存進度', e);
   }
+  // 通知同步層（雲端）有變動
+  subscribers.forEach((fn) => {
+    try {
+      fn();
+    } catch (e) {
+      console.warn('同步通知失敗', e);
+    }
+  });
+}
+
+// ---- 給同步層使用 ----
+export function getState() {
+  return state;
+}
+
+// 用新的狀態整個取代（例如雲端合併後），並寫回 localStorage
+export function replaceState(next) {
+  state = next || {};
+  persist();
+}
+
+// 註冊變動回呼；每次進度寫入後會被呼叫
+export function subscribe(fn) {
+  subscribers.push(fn);
+}
+
+// 合併兩份進度（本機 + 雲端），用於跨裝置同步。盡量保留「較有進度」的那份。
+export function merge(local, remote) {
+  if (!remote) return local || {};
+  if (!local) return remote;
+  const out = { cards: {}, scores: {} };
+
+  const cardKeys = new Set([
+    ...Object.keys(local.cards || {}),
+    ...Object.keys(remote.cards || {}),
+  ]);
+  for (const k of cardKeys) out.cards[k] = pickCard(local.cards?.[k], remote.cards?.[k]);
+
+  const scoreKeys = new Set([
+    ...Object.keys(local.scores || {}),
+    ...Object.keys(remote.scores || {}),
+  ]);
+  for (const k of scoreKeys) out.scores[k] = pickScore(local.scores?.[k], remote.scores?.[k]);
+
+  out.streak = pickStreak(local.streak, remote.streak);
+  out.updatedAt = Date.now();
+  return out;
+}
+
+// 兩張卡取「複習進度較前面」的（due 較晚＝記得較熟）
+function pickCard(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  return (b.due || 0) > (a.due || 0) ? b : a;
+}
+
+function pickScore(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  const latest = (b.when || 0) >= (a.when || 0) ? b : a;
+  return {
+    best: Math.max(a.best || 0, b.best || 0),
+    attempts: Math.max(a.attempts || 0, b.attempts || 0),
+    last: latest.last,
+    when: Math.max(a.when || 0, b.when || 0),
+  };
+}
+
+function pickStreak(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  // 以最近一次學習日期較新的那份為準；同一天則取較大連續天數
+  if (a.last === b.last) return { count: Math.max(a.count || 0, b.count || 0), last: a.last };
+  return new Date(b.last) > new Date(a.last) ? b : a;
 }
 
 // 卡片狀態 key：lang:type:id（type 通常為 vocab）
