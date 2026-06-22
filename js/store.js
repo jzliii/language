@@ -49,7 +49,7 @@ export function subscribe(fn) {
 export function merge(local, remote) {
   if (!remote) return local || {};
   if (!local) return remote;
-  const out = { cards: {}, scores: {} };
+  const out = { cards: {}, scores: {}, quiz: {}, wrong: {} };
 
   const cardKeys = new Set([
     ...Object.keys(local.cards || {}),
@@ -62,6 +62,27 @@ export function merge(local, remote) {
     ...Object.keys(remote.scores || {}),
   ]);
   for (const k of scoreKeys) out.scores[k] = pickScore(local.scores?.[k], remote.scores?.[k]);
+
+  // 測驗作答狀態：每個 key 取較新（ts 大）的
+  const quizKeys = new Set([...Object.keys(local.quiz || {}), ...Object.keys(remote.quiz || {})]);
+  for (const k of quizKeys) {
+    const a = local.quiz?.[k];
+    const b = remote.quiz?.[k];
+    out.quiz[k] = !a ? b : !b ? a : (b.ts || 0) >= (a.ts || 0) ? b : a;
+  }
+
+  // 錯題庫：深層聯集
+  const wrongLangs = new Set([...Object.keys(local.wrong || {}), ...Object.keys(remote.wrong || {})]);
+  for (const lg of wrongLangs) {
+    out.wrong[lg] = {};
+    const cats = new Set([
+      ...Object.keys(local.wrong?.[lg] || {}),
+      ...Object.keys(remote.wrong?.[lg] || {}),
+    ]);
+    for (const c of cats) {
+      out.wrong[lg][c] = { ...(local.wrong?.[lg]?.[c] || {}), ...(remote.wrong?.[lg]?.[c] || {}) };
+    }
+  }
 
   out.streak = pickStreak(local.streak, remote.streak);
   out.updatedAt = Date.now();
@@ -148,4 +169,47 @@ export function getStreak() {
 export function markStudied() {
   bumpStreak();
   persist();
+}
+
+// ---- 測驗作答狀態（單頁、可重看）----
+// key 例：'ja:vocab'、'ja:grammar'、'ja:reading:ja-r1'
+export function getQuiz(key) {
+  return state.quiz?.[key];
+}
+
+export function saveQuiz(key, data) {
+  state.quiz = state.quiz || {};
+  state.quiz[key] = { ...data, ts: Date.now() };
+  persist();
+}
+
+export function clearQuiz(key) {
+  if (state.quiz && state.quiz[key]) {
+    delete state.quiz[key];
+    persist();
+  }
+}
+
+// ---- 錯題庫：state.wrong[lang][cat][id] = 加入時間 ----
+export function addWrong(lang, cat, id) {
+  state.wrong = state.wrong || {};
+  state.wrong[lang] = state.wrong[lang] || {};
+  state.wrong[lang][cat] = state.wrong[lang][cat] || {};
+  if (!state.wrong[lang][cat][id]) {
+    state.wrong[lang][cat][id] = Date.now();
+    persist();
+  }
+}
+
+export function removeWrong(lang, cat, id) {
+  if (state.wrong?.[lang]?.[cat]?.[id]) {
+    delete state.wrong[lang][cat][id];
+    persist();
+  }
+}
+
+// 回傳某語言的錯題 id 清單：{ vocab:[...], grammar:[...] }
+export function getWrong(lang) {
+  const w = state.wrong?.[lang] || {};
+  return { vocab: Object.keys(w.vocab || {}), grammar: Object.keys(w.grammar || {}) };
 }

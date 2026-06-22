@@ -89,9 +89,11 @@ function router() {
         ? go(() => renderReading(lang, parts[3]), hash)
         : go(() => renderReadingList(lang), hash);
     if (mode === 'script') return go(() => renderScriptDrill(lang), hash);
+    if (mode === 'wrong') return go(() => renderWrongPractice(lang), hash);
   }
   if (parts[0] === 'review') return go(renderReview, '/review');
   if (parts[0] === 'wordbook') return go(renderWordbook, '/wordbook');
+  if (parts[0] === 'notes') return go(renderNotes, '/notes');
   if (parts[0] === 'stats') return go(renderStats, '/stats');
   if (parts[0] === 'settings') return go(renderSettings, '/settings');
   return go(renderDashboard, '/');
@@ -110,6 +112,7 @@ const TABS = [
   { id: '/', icon: '🏠', label: '首頁', href: '#/' },
   { id: '/review', icon: '🔁', label: '複習', href: '#/review' },
   { id: '/wordbook', icon: '📚', label: '單字本', href: '#/wordbook' },
+  { id: '/notes', icon: '📝', label: '筆記', href: '#/notes' },
   { id: '/stats', icon: '📊', label: '統計', href: '#/stats' },
   { id: '/settings', icon: '☁️', label: '同步', href: '#/settings' },
 ];
@@ -473,72 +476,119 @@ function renderReview() {
   });
 }
 
-// ---------- 通用選擇題測驗 ----------
-function runQuiz(lang, mode, title, icon, questions, backHref) {
-  const qs = shuffle(questions);
-  let idx = 0;
-  let correct = 0;
+// ---------- 單頁、可重看的測驗引擎 ----------
+// item: { prompt, speak?, options:[], answer, explanation?, cat?, refId? }
+function qcardHtml(item, i, tts) {
+  const opts = item.options.map((o, k) => `<button class="opt" data-i="${k}">${esc(o)}</button>`).join('');
+  return `
+    <div class="qcard" data-q="${i}">
+      <div class="q-prompt">${i + 1}. ${esc(item.prompt)} ${item.speak ? speakBtn(item.speak, tts) : ''}</div>
+      <div class="options">${opts}</div>
+      <div class="explain hidden"></div>
+    </div>`;
+}
 
-  function show() {
-    if (idx >= qs.length) return finish();
-    const q = qs[idx];
-    const opts = q.options.map((o, i) => `<button class="opt" data-i="${i}">${esc(o)}</button>`).join('');
-    app.innerHTML = `
-      <header class="bar">
-        <a class="back" href="${backHref}">‹ 返回</a>
-        <h2>${icon} ${title}</h2>
-        <span class="progress-pill">${idx + 1} / ${qs.length}</span>
-      </header>
-      <div class="quiz">
-        <div class="q-prompt">${esc(q.prompt)} ${q.speak ? speakBtn(q.speak, lang.tts) : ''}</div>
-        <div class="options">${opts}</div>
-        <div class="explain hidden" id="explain"></div>
-        <button class="btn primary hidden" id="next">下一題 ›</button>
-      </div>`;
-    bindSpeak(app);
-    app.querySelectorAll('.opt').forEach((b) => {
-      b.onclick = () => choose(parseInt(b.dataset.i, 10), q);
-    });
+function applyAnswered(card, item, choice) {
+  const btns = card.querySelectorAll('.opt');
+  btns.forEach((b) => (b.disabled = true));
+  if (btns[item.answer]) btns[item.answer].classList.add('right');
+  if (choice !== item.answer && btns[choice]) btns[choice].classList.add('wrong');
+  const ex = card.querySelector('.explain');
+  if (item.explanation) {
+    ex.textContent = (choice === item.answer ? '✅ 正確！ ' : '❌ ') + item.explanation;
+    ex.classList.remove('hidden');
   }
+}
 
-  function choose(i, q) {
-    const buttons = app.querySelectorAll('.opt');
-    buttons.forEach((b) => (b.disabled = true));
-    buttons[q.answer].classList.add('right');
-    if (i === q.answer) correct++;
-    else buttons[i].classList.add('wrong');
-    const ex = document.getElementById('explain');
-    if (q.explanation) {
-      ex.textContent = (i === q.answer ? '✅ 正確！ ' : '❌ ') + q.explanation;
-      ex.classList.remove('hidden');
+// opts: { lang, title, icon, backHref, key, items, recordMode, aboveHtml, completeExtraHtml, onReset, onRendered }
+function runQuizPage(opts) {
+  const { lang, title, icon, backHref, key, recordMode } = opts;
+  const saved = key ? store.getQuiz(key) : null;
+  const list = saved?.items || opts.items;
+  const answers = saved?.answers ? { ...saved.answers } : {};
+  let recorded = saved?.recorded || false;
+  if (key && !saved) store.saveQuiz(key, { items: list, answers, recorded });
+
+  const countCorrect = () => list.reduce((s, it, i) => s + (answers[i] === it.answer ? 1 : 0), 0);
+
+  function footHtml() {
+    const done = Object.keys(answers).length;
+    if (done < list.length) {
+      return `<div class="quiz-foot"><span class="qf-progress">已答 ${done} / ${list.length}</span>${done ? resetBtn() : ''}</div>`;
     }
-    const next = document.getElementById('next');
-    next.classList.remove('hidden');
-    next.textContent = idx + 1 >= qs.length ? '看結果 ›' : '下一題 ›';
-    next.onclick = () => {
-      idx++;
-      show();
-    };
-  }
-
-  function finish() {
-    store.recordScore(lang.code, mode, correct, qs.length);
-    const p = pct(correct, qs.length);
+    const correct = countCorrect();
+    const p = pct(correct, list.length);
     const emoji = p >= 90 ? '🏆' : p >= 70 ? '🎉' : p >= 50 ? '💪' : '📚';
-    app.innerHTML = `
-      <header class="bar"><a class="back" href="${backHref}">‹ 返回</a><h2>${icon} 結果</h2></header>
-      <div class="result">
-        <div class="result-big">${emoji}</div>
-        <p>答對 <strong>${correct}</strong> / ${qs.length} 題（${p}%）</p>
-        <div class="result-actions">
-          <button class="btn primary" id="retry">再做一次</button>
-          <a class="btn" href="${backHref}">回到選單</a>
-        </div>
-      </div>`;
-    document.getElementById('retry').onclick = () => runQuiz(lang, mode, title, icon, questions, backHref);
+    return `
+      <div class="quiz-result">${emoji} 答對 <strong>${correct}</strong> / ${list.length} 題（${p}%）</div>
+      ${opts.completeExtraHtml || ''}
+      <div class="quiz-foot">${resetBtn()}</div>`;
+  }
+  const resetBtn = () => '<button class="btn" id="quiz-reset">🔄 再練習一次</button>';
+
+  function refreshFoot() {
+    document.getElementById('quiz-foot-wrap').innerHTML = footHtml();
+    const rb = document.getElementById('quiz-reset');
+    if (rb) rb.onclick = reset;
   }
 
-  show();
+  function choose(i, c) {
+    if (answers[i] !== undefined) return;
+    answers[i] = c;
+    const item = list[i];
+    const ok = c === item.answer;
+    if (item.cat && item.refId) {
+      if (ok) store.removeWrong(lang.code, item.cat, item.refId);
+      else store.addWrong(lang.code, item.cat, item.refId);
+    }
+    applyAnswered(app.querySelector(`.qcard[data-q="${i}"]`), item, c);
+    if (Object.keys(answers).length === list.length && !recorded && recordMode) {
+      store.recordScore(lang.code, recordMode, countCorrect(), list.length);
+      recorded = true;
+    }
+    if (key) store.saveQuiz(key, { items: list, answers, recorded });
+    refreshFoot();
+  }
+
+  function reset() {
+    if (key) store.clearQuiz(key);
+    (opts.onReset || (() => router()))();
+  }
+
+  app.innerHTML = `
+    <header class="bar"><a class="back" href="${backHref}">‹ 返回</a><h2>${icon} ${title}</h2></header>
+    ${opts.aboveHtml || ''}
+    <section class="quiz-list">${list.map((it, i) => qcardHtml(it, i, lang.tts)).join('')}</section>
+    <div id="quiz-foot-wrap">${footHtml()}</div>`;
+  bindSpeak(app);
+  list.forEach((it, i) => {
+    const card = app.querySelector(`.qcard[data-q="${i}"]`);
+    if (answers[i] !== undefined) {
+      applyAnswered(card, it, answers[i]);
+    } else {
+      card.querySelectorAll('.opt').forEach((b) => {
+        b.onclick = () => choose(i, parseInt(b.dataset.i, 10));
+      });
+    }
+  });
+  const rb = document.getElementById('quiz-reset');
+  if (rb) rb.onclick = reset;
+  if (opts.onRendered) opts.onRendered();
+}
+
+// 由單字建立一題（錯題庫與單字練習共用）
+function vocabQuestion(v, pool) {
+  const distractors = shuffle(pool.filter((m) => m !== v.back)).slice(0, 3);
+  const options = shuffle([v.back, ...distractors]);
+  return {
+    prompt: v.reading ? `${v.front}（${v.reading}）` : v.front,
+    speak: v.front,
+    options,
+    answer: options.indexOf(v.back),
+    explanation: v.example || '',
+    cat: 'vocab',
+    refId: v.id,
+  };
 }
 
 function renderVocabQuiz(lang) {
@@ -548,29 +598,35 @@ function renderVocabQuiz(lang) {
     app.innerHTML = `<header class="bar"><a class="back" href="${back}">‹ 返回</a></header><p class="hint center">單字不足，無法出題。</p>`;
     return;
   }
-  const meanings = vocab.map((v) => v.back);
-  const questions = shuffle(vocab).slice(0, 12).map((v) => {
-    const distractors = shuffle(meanings.filter((m) => m !== v.back)).slice(0, 3);
-    const options = shuffle([v.back, ...distractors]);
-    return {
-      prompt: v.reading ? `${v.front}（${v.reading}）` : v.front,
-      speak: v.front,
-      options,
-      answer: options.indexOf(v.back),
-      explanation: v.example || '',
-    };
+  const pool = vocab.map((v) => v.back);
+  const items = shuffle(vocab).slice(0, 12).map((v) => vocabQuestion(v, pool));
+  runQuizPage({
+    lang, title: '單字練習', icon: '✍️', backHref: back,
+    key: `${lang.code}:vocab`, items, recordMode: 'vocab',
+    onReset: () => renderVocabQuiz(lang),
   });
-  runQuiz(lang, 'vocab', '單字練習', '✍️', questions, back);
 }
 
 function renderGrammarQuiz(lang) {
   const back = `#/lang/${lang.code}`;
-  const items = lang.content.grammar || [];
-  if (!items.length) {
+  const src = lang.content.grammar || [];
+  if (!src.length) {
     app.innerHTML = `<header class="bar"><a class="back" href="${back}">‹ 返回</a></header><p class="hint center">尚無文法題目。</p>`;
     return;
   }
-  runQuiz(lang, 'grammar', '文法練習', '📐', items, back);
+  const items = src.map((g) => ({
+    prompt: g.prompt,
+    options: g.options,
+    answer: g.answer,
+    explanation: g.explanation || '',
+    cat: 'grammar',
+    refId: g.id,
+  }));
+  runQuizPage({
+    lang, title: '文法練習', icon: '📐', backHref: back,
+    key: `${lang.code}:grammar`, items, recordMode: 'grammar',
+    onReset: () => renderGrammarQuiz(lang),
+  });
 }
 
 function renderScriptDrill(lang) {
@@ -583,7 +639,11 @@ function renderScriptDrill(lang) {
     explanation: d.back ? `讀音：${d.back}` : '',
   }));
   if (!items.length) return renderLangMenu(lang);
-  runQuiz(lang, 'script', '拼音／閱讀辨識', '🔤', items, back);
+  runQuizPage({
+    lang, title: '拼音／閱讀辨識', icon: '🔤', backHref: back,
+    key: `${lang.code}:script`, items, recordMode: 'script',
+    onReset: () => renderScriptDrill(lang),
+  });
 }
 
 // ---------- 閱讀 ----------
@@ -608,20 +668,11 @@ function renderReading(lang, id) {
   const r = (lang.content.reading || []).find((x) => x.id === id);
   if (!r) return renderReadingList(lang);
   const back = `#/lang/${lang.code}/reading`;
-  let answered = 0;
-  let correct = 0;
+  const all = lang.content.reading || [];
+  const next = all[all.findIndex((x) => x.id === id) + 1];
 
-  const qHtml = r.questions
-    .map((q, qi) => {
-      const opts = q.options
-        .map((o, i) => `<button class="opt" data-q="${qi}" data-i="${i}">${esc(o)}</button>`)
-        .join('');
-      return `<div class="rq"><p class="rq-q">${qi + 1}. ${esc(q.q)}</p><div class="options">${opts}</div></div>`;
-    })
-    .join('');
-
-  app.innerHTML = `
-    <header class="bar"><a class="back" href="${back}">‹ 返回</a><h2>📖 ${esc(r.title)}</h2></header>
+  const items = r.questions.map((q) => ({ prompt: q.q, options: q.options, answer: q.answer }));
+  const aboveHtml = `
     <article class="reading">
       <div class="reading-toolbar">
         <span class="lvl">${esc(r.level)}</span>
@@ -631,51 +682,111 @@ function renderReading(lang, id) {
       <div class="reading-text">${esc(r.text).replace(/\n/g, '<br>')}</div>
       <div class="reading-trans hidden" id="trans">${esc(r.translation).replace(/\n/g, '<br>')}</div>
     </article>
-    <section class="reading-q">
-      <h3>理解測驗</h3>
-      ${qHtml}
-      <div class="reading-result hidden" id="rresult"></div>
-    </section>`;
+    <h3 class="reading-qh">理解測驗</h3>`;
+  const completeExtraHtml = `
+    <div class="reading-next">
+      ${next ? `<a class="btn primary" href="#/lang/${lang.code}/reading/${next.id}">下一篇 →</a>` : ''}
+      <a class="btn" href="${back}">回閱讀清單</a>
+    </div>`;
 
-  const transBtn = document.getElementById('toggle-trans');
-  transBtn.onclick = () => {
-    const t = document.getElementById('trans');
-    t.classList.toggle('hidden');
-    transBtn.textContent = t.classList.contains('hidden') ? '顯示中文翻譯' : '隱藏中文翻譯';
-  };
-  const aloud = document.getElementById('read-aloud');
-  if (aloud) aloud.onclick = () => speak(r.text.replace(/\n/g, ' '), lang.tts);
+  runQuizPage({
+    lang, title: esc(r.title), icon: '📖', backHref: back,
+    key: `${lang.code}:reading:${id}`, items, recordMode: 'reading',
+    aboveHtml, completeExtraHtml,
+    onReset: () => renderReading(lang, id),
+    onRendered: () => {
+      const tb = document.getElementById('toggle-trans');
+      if (tb)
+        tb.onclick = () => {
+          const t = document.getElementById('trans');
+          t.classList.toggle('hidden');
+          tb.textContent = t.classList.contains('hidden') ? '顯示中文翻譯' : '隱藏中文翻譯';
+        };
+      const al = document.getElementById('read-aloud');
+      if (al) al.onclick = () => speak(r.text.replace(/\n/g, ' '), lang.tts);
+    },
+  });
+}
 
-  app.querySelectorAll('.rq').forEach((block, qi) => {
-    const q = r.questions[qi];
-    block.querySelectorAll('.opt').forEach((b) => {
-      b.onclick = () => {
-        if (block.dataset.done) return;
-        block.dataset.done = '1';
-        const btns = block.querySelectorAll('.opt');
-        btns.forEach((x) => (x.disabled = true));
-        btns[q.answer].classList.add('right');
-        const chosen = parseInt(b.dataset.i, 10);
-        if (chosen === q.answer) correct++;
-        else b.classList.add('wrong');
-        answered++;
-        if (answered === r.questions.length) {
-          store.recordScore(lang.code, 'reading', correct, r.questions.length);
-          const all = lang.content.reading || [];
-          const idx = all.findIndex((x) => x.id === r.id);
-          const next = all[idx + 1];
-          const res = document.getElementById('rresult');
-          res.classList.remove('hidden');
-          res.innerHTML = `完成！答對 <strong>${correct}</strong> / ${r.questions.length} 題 ${
-            correct === r.questions.length ? '🏆' : '👍'
-          }
-          <div class="reading-next">
-            ${next ? `<a class="btn primary" href="#/lang/${lang.code}/reading/${next.id}">下一篇 →</a>` : ''}
-            <a class="btn" href="#/lang/${lang.code}/reading">回閱讀清單</a>
-          </div>`;
-        }
-      };
-    });
+// ---------- 筆記：錯題庫（分語言、分單字/文法）----------
+function wrongItemsFor(lang) {
+  const w = store.getWrong(lang.code);
+  const vocab = lang.content.vocab || [];
+  const grammar = lang.content.grammar || [];
+  const vWrong = w.vocab.map((id) => vocab.find((v) => v.id === id)).filter(Boolean);
+  const gWrong = w.grammar.map((id) => grammar.find((g) => g.id === id)).filter(Boolean);
+  return { vWrong, gWrong };
+}
+
+function renderNotes() {
+  const sections = LANGUAGES.map((lang) => {
+    const { vWrong, gWrong } = wrongItemsFor(lang);
+    const total = vWrong.length + gWrong.length;
+    if (!total) {
+      return `
+        <section class="wb-lang">
+          <div class="wb-head${lang.light ? ' light' : ''}" style="background:${lang.color}"><span>${lang.flag} ${lang.name}</span><span class="wb-count">沒有錯題 🎉</span></div>
+        </section>`;
+    }
+    const vList = vWrong.length
+      ? `<div class="wb-group"><div class="wb-group-h">📝 單字（${vWrong.length}）</div><ul class="wb-list">${vWrong
+          .map(
+            (v) => `<li class="wb-word"><span class="wb-front">${esc(v.front)} ${speakBtn(v.front, lang.tts)}</span>${v.reading ? `<span class="wb-reading">${esc(v.reading)}</span>` : ''}<span class="wb-back">${esc(v.back)}</span></li>`
+          )
+          .join('')}</ul></div>`
+      : '';
+    const gList = gWrong.length
+      ? `<div class="wb-group"><div class="wb-group-h">📐 文法（${gWrong.length}）</div><ul class="wb-list">${gWrong
+          .map(
+            (g) => `<li class="wb-gram"><div class="wg-q">${esc(g.prompt)}</div><div class="wg-a">✔ ${esc(g.options[g.answer])}</div>${g.explanation ? `<div class="wg-e">${esc(g.explanation)}</div>` : ''}</li>`
+          )
+          .join('')}</ul></div>`
+      : '';
+    return `
+      <section class="wb-lang">
+        <div class="wb-head${lang.light ? ' light' : ''}" style="background:${lang.color}">
+          <span>${lang.flag} ${lang.name}</span>
+          <span class="wb-count">${total} 題</span>
+        </div>
+        <a class="btn primary wrong-cta" href="#/lang/${lang.code}/wrong">🔁 錯題再練習（${total}）</a>
+        ${vList}
+        ${gList}
+      </section>`;
+  }).join('');
+
+  app.innerHTML = `
+    <header class="topbar"><span class="brand">📝 筆記 · 錯題庫</span></header>
+    <p class="wb-intro">答錯的單字與文法會自動收進這裡，分語言整理。答對之後會自動移除。</p>
+    ${sections}`;
+  bindSpeak(app);
+}
+
+function renderWrongPractice(lang) {
+  const { vWrong, gWrong } = wrongItemsFor(lang);
+  const back = '#/notes';
+  const pool = (lang.content.vocab || []).map((v) => v.back);
+  const items = [
+    ...vWrong.map((v) => vocabQuestion(v, pool)),
+    ...gWrong.map((g) => ({
+      prompt: g.prompt,
+      options: g.options,
+      answer: g.answer,
+      explanation: g.explanation || '',
+      cat: 'grammar',
+      refId: g.id,
+    })),
+  ];
+  if (!items.length) {
+    app.innerHTML = `
+      <header class="bar"><a class="back" href="${back}">‹ 返回</a><h2>🔁 錯題再練習</h2></header>
+      <div class="result"><div class="result-big">🎉</div><p>${lang.name} 沒有錯題，太強了！</p>
+      <div class="result-actions"><a class="btn primary" href="${back}">回筆記</a></div></div>`;
+    return;
+  }
+  runQuizPage({
+    lang, title: `${lang.name} 錯題再練習`, icon: '🔁', backHref: back,
+    key: null, items: shuffle(items), recordMode: null,
+    onReset: () => renderWrongPractice(lang),
   });
 }
 

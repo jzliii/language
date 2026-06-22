@@ -33,6 +33,14 @@ export default {
     { id: 'en-g8', type: 'mc', prompt: 'The new policy will ___ next month.', options: ['take effect', 'take place', 'take part', 'take care'], answer: 0, explanation: 'take effect＝生效。take place＝舉行。注意片語搭配。' },
     { id: 'en-g9', type: 'mc', prompt: 'He is responsible ___ training new staff.', options: ['for', 'to', 'of', 'with'], answer: 0, explanation: 'be responsible for＝負責～。介系詞固定搭配 for。' },
     { id: 'en-g10', type: 'mc', prompt: 'Neither the manager nor the staff ___ available.', options: ['was', 'were', 'have', 'are being'], answer: 0, explanation: 'neither A nor B，動詞與最近的 B（the staff，視為單數集合）一致 → was。' },
+    { id: 'en-g11', type: 'mc', prompt: '(多益) The company ___ its annual report next week.', options: ['will release', 'releases', 'released', 'has released'], answer: 0, explanation: '未來時間 next week → will + 原形動詞。' },
+    { id: 'en-g12', type: 'mc', prompt: '(多益) All employees must ___ their ID badges at all times.', options: ['wear', 'wears', 'wearing', 'worn'], answer: 0, explanation: '助動詞 must 後面接原形動詞。' },
+    { id: 'en-g13', type: 'mc', prompt: '(多益) The shipment was delayed ___ the bad weather.', options: ['due to', 'because', 'so', 'although'], answer: 0, explanation: 'due to + 名詞片語；because 後面要接子句。' },
+    { id: 'en-g14', type: 'mc', prompt: '(多益) Please review the contract ___ you sign it.', options: ['before', 'during', 'despite', 'unless'], answer: 0, explanation: 'before + 子句，表「在～之前」。' },
+    { id: 'en-g15', type: 'mc', prompt: '(多益) The manager asked the team ___ the deadline.', options: ['to meet', 'meet', 'meeting', 'met'], answer: 0, explanation: 'ask someone to V：要求某人做某事。' },
+    { id: 'en-g16', type: 'mc', prompt: '(多益) Sales have increased ___ 15% this quarter.', options: ['by', 'to', 'at', 'of'], answer: 0, explanation: 'increase by + 幅度（增加了多少）。' },
+    { id: 'en-g17', type: 'mc', prompt: '(多益) The software is ___ easier to use than the old one.', options: ['much', 'very', 'too', 'so'], answer: 0, explanation: '比較級前用 much/far 加強語氣，不用 very。' },
+    { id: 'en-g18', type: 'mc', prompt: '(多益) We look forward to ___ with your company.', options: ['working', 'work', 'worked', 'be working'], answer: 0, explanation: 'look forward to 的 to 是介系詞，後接 V-ing。' },
   ],
   reading: [
     {
@@ -53,6 +61,16 @@ export default {
         { q: 'Why will the office be closed?', options: ['Maintenance', 'A public holiday', 'A company trip', 'Bad weather'], answer: 1 },
         { q: 'What happens to Monday’s deliveries?', options: ['Cancelled', 'Postponed to Tuesday', 'Sent earlier', 'No change'], answer: 1 },
         { q: 'How can customers reach support?', options: ['By phone', 'By email', 'In person', 'By fax'], answer: 1 },
+      ],
+    },
+    {
+      id: 'en-r3', title: 'IELTS: The Benefits of Cycling', level: 'IELTS',
+      text: 'Cycling is one of the most efficient ways to travel short distances in cities. It produces no emissions, reduces traffic congestion, and improves physical health. Many cities have built dedicated bike lanes to encourage commuters to leave their cars at home. However, safety remains a concern, and experts argue that better infrastructure is essential before cycling can become truly widespread.',
+      translation: '騎自行車是城市短程移動最有效率的方式之一。它不排放廢氣、減少交通壅塞，並增進身體健康。許多城市興建專用自行車道，鼓勵通勤者把車留在家。然而安全仍是隱憂，專家認為在自行車真正普及之前，更完善的基礎建設不可或缺。',
+      questions: [
+        { q: 'According to the passage, what is one benefit of cycling?', options: ['It increases emissions', 'It reduces traffic congestion', 'It is always dangerous', 'It requires a car'], answer: 1 },
+        { q: 'The word "widespread" is closest in meaning to:', options: ['expensive', 'common', 'illegal', 'difficult'], answer: 1 },
+        { q: 'What do experts say is needed for cycling to grow?', options: ['More cars', 'Better infrastructure', 'Higher taxes', 'Fewer bike lanes'], answer: 1 },
       ],
     },
   ],
