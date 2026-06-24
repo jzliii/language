@@ -3,6 +3,7 @@ const KEY = 'polyglot-progress-v1';
 
 let state = load();
 const subscribers = [];
+ensureWeek();
 
 function load() {
   try {
@@ -50,6 +51,16 @@ export function merge(local, remote) {
   if (!remote) return local || {};
   if (!local) return remote;
   const out = { cards: {}, scores: {}, quiz: {}, wrong: {} };
+  out.week = Math.max(local.week || 0, remote.week || 0);
+
+  // 本週練習：同週聯集，跨週取較新一週的
+  if ((local.week || 0) === (remote.week || 0)) {
+    out.weekly = {};
+    const wl = new Set([...Object.keys(local.weekly || {}), ...Object.keys(remote.weekly || {})]);
+    for (const lg of wl) out.weekly[lg] = { ...(local.weekly?.[lg] || {}), ...(remote.weekly?.[lg] || {}) };
+  } else {
+    out.weekly = (local.week || 0) > (remote.week || 0) ? local.weekly || {} : remote.weekly || {};
+  }
 
   const cardKeys = new Set([
     ...Object.keys(local.cards || {}),
@@ -68,7 +79,8 @@ export function merge(local, remote) {
   for (const k of quizKeys) {
     const a = local.quiz?.[k];
     const b = remote.quiz?.[k];
-    out.quiz[k] = !a ? b : !b ? a : (b.ts || 0) >= (a.ts || 0) ? b : a;
+    const pick = !a ? b : !b ? a : (b.ts || 0) >= (a.ts || 0) ? b : a;
+    if (pick && pick.week === out.week) out.quiz[k] = pick; // 丟掉上一週的作答
   }
 
   // 錯題庫：深層聯集
@@ -171,15 +183,55 @@ export function markStudied() {
   persist();
 }
 
+// ---- 每週週期（依使用者當地時間，週一為一週起點）----
+function mondayMs(d = new Date()) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dow = (x.getDay() + 6) % 7; // 週一=0 ... 週日=6
+  x.setDate(x.getDate() - dow);
+  return x.getTime();
+}
+
+export function currentWeek() {
+  return mondayMs();
+}
+
+// 換到新的一週時：清空作答(題目更新)與本週練習；保留 SRS 卡片、分數、錯題庫、streak
+function ensureWeek() {
+  const wk = mondayMs();
+  if (state.week !== wk) {
+    state.week = wk;
+    state.quiz = {};
+    state.weekly = {};
+    persist();
+  }
+}
+
+// 記錄某語言本週練習過的單字
+export function recordWeekly(lang, id) {
+  ensureWeek();
+  state.weekly = state.weekly || {};
+  state.weekly[lang] = state.weekly[lang] || {};
+  if (!state.weekly[lang][id]) {
+    state.weekly[lang][id] = 1;
+    persist();
+  }
+}
+
+// 某語言本週練習過幾個單字
+export function weeklyDone(lang) {
+  return Object.keys(state.weekly?.[lang] || {}).length;
+}
+
 // ---- 測驗作答狀態（單頁、可重看）----
 // key 例：'ja:vocab'、'ja:grammar'、'ja:reading:ja-r1'
 export function getQuiz(key) {
-  return state.quiz?.[key];
+  const q = state.quiz?.[key];
+  return q && q.week === state.week ? q : undefined; // 只回傳本週的作答
 }
 
 export function saveQuiz(key, data) {
   state.quiz = state.quiz || {};
-  state.quiz[key] = { ...data, ts: Date.now() };
+  state.quiz[key] = { ...data, ts: Date.now(), week: state.week };
   persist();
 }
 

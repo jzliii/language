@@ -64,6 +64,13 @@ function vocabStats(lang) {
 
 const pct = (n, d) => (d ? Math.round((n / d) * 100) : 0);
 
+// 本週練習進度（每週一依當地時間歸零）
+function weeklyProg(l) {
+  const total = (l.content.vocab || []).length;
+  const done = Math.min(store.weeklyDone(l.code), total);
+  return { done, total, pct: pct(done, total) };
+}
+
 function dayIndex() {
   const now = new Date();
   const start = new Date(now.getFullYear(), 0, 0);
@@ -208,8 +215,7 @@ function renderDashboard() {
   }
 
   const cards = LANGUAGES.map((l) => {
-    const st = vocabStats(l);
-    const p = pct(st.mastered, st.total);
+    const wp = weeklyProg(l);
     const due = dueCount(l);
     return `
       <a class="lang-row" href="#/lang/${l.code}">
@@ -217,8 +223,8 @@ function renderDashboard() {
         <span class="lr-main">
           <strong>${l.name}</strong>
           <small>${esc(l.level)}</small>
-          <span class="pbar"><i style="width:${p}%"></i></span>
-          <span class="lr-stat">已熟 ${st.mastered}/${st.total}（${p}%）· 學過 ${st.studied} 字</span>
+          <span class="pbar"><i style="width:${wp.pct}%"></i></span>
+          <span class="lr-stat">本週練習 ${wp.done}/${wp.total}（${wp.pct}%）</span>
         </span>
         <span class="lr-badge${due ? '' : ' done'}">${due || '✓'}</span>
       </a>`;
@@ -313,7 +319,7 @@ function renderStats() {
 function renderLangMenu(lang) {
   const due = dueCount(lang);
   const st = vocabStats(lang);
-  const p = pct(st.mastered, st.total);
+  const wp = weeklyProg(lang);
   const modes = MODES.filter((m) => !m.needs || lang.content[m.needs]?.length)
     .map((m) => {
       const score = store.getScore(lang.code, m.id);
@@ -336,9 +342,9 @@ function renderLangMenu(lang) {
       <h2>${lang.flag} ${lang.name} <small>${esc(lang.level)}</small></h2>
     </header>
     <section class="lang-progress" style="--c:${lang.color}">
-      <div class="lp-top"><span>單字熟練度</span><span>${st.mastered}/${st.total}（${p}%）</span></div>
-      <span class="pbar big"><i style="width:${p}%;background:${lang.color}"></i></span>
-      <div class="lp-sub">學習中 ${st.learning} · 待複習 ${due}</div>
+      <div class="lp-top"><span>本週練習</span><span>${wp.done}/${wp.total}（${wp.pct}%）</span></div>
+      <span class="pbar big"><i style="width:${wp.pct}%;background:${lang.color}"></i></span>
+      <div class="lp-sub">累計已熟 ${st.mastered}/${st.total} · 待複習 ${due}</div>
     </section>
     <section class="mode-list">${modes}</section>`;
   if (!hasVoiceFor(lang.tts)) {
@@ -403,6 +409,7 @@ function runFlashcards({ title, items, backHref, reviewingAll, retry, mixed }) {
     const key = `${lang.code}:vocab:${v.id}`;
     const card = store.getCard(key) || srs.newCard();
     store.setCard(key, srs.review(card, q));
+    store.recordWeekly(lang.code, v.id); // 計入本週練習
     if (q === 0) queue.push({ lang, v }); // 答錯排到後面再練
     done++;
     idx++;
@@ -540,6 +547,7 @@ function runQuizPage(opts) {
     if (item.cat && item.refId) {
       if (ok) store.removeWrong(lang.code, item.cat, item.refId);
       else store.addWrong(lang.code, item.cat, item.refId);
+      if (item.cat === 'vocab') store.recordWeekly(lang.code, item.refId); // 單字練習也計入本週
     }
     applyAnswered(app.querySelector(`.qcard[data-q="${i}"]`), item, c);
     if (Object.keys(answers).length === list.length && !recorded && recordMode) {
